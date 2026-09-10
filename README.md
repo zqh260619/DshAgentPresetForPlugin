@@ -43,6 +43,18 @@ DshAgentPresetForPlugin/
 - `tool-cordis` 会把 first-party Inspect provider(`Service` / `Event` / `Builtin` / `Tool`)注册进宿主进程全局的 `cordisInspect` registry;若两个预设都携带它,后挂载者会因重名抛错,导致会话创建 / resume 失败。
 - 本预设把 `tool-cordis` 与 `cordis-inspect-shim` 放进一个 `isolate: { cordisInspect: true }` 的 realm 组:shim 把 `register` 转发给宿主 registry、仅容忍预期的 `already registered` 错误,`list` / `query` 完全代理——因此无论挂载顺序如何,两个预设都能在同一进程内正常共存。
 
+## 版本兼容性
+
+当前版本同步自 **DSH 0.1.5-rc.2** 的 shipped `cordis` 预设,已包含该版本的组合变更:
+
+- `persona` 行改用 `prefix`(必填)+ `suffix`;0.1.0 的 `text` 字段已移除,旧写法会直接导致挂载失败(`invalid config: $.prefix missing required value`);
+- 新增 `command-goal`(`/goal` 命令)与 `present`(`present` 工具)两行;
+- `tool-subagent`(spawn)新增 `modelSelectionSettings: true`;Codex / Claude Code 两行由 `enableRunInBackground: false` 改为 `backgroundMode: one-shot`;
+- `tool-web` 由 `fetch: false` 改为 `fetch: true`;
+- 技能 `editing-cordis-compositions` 同步至新版文本(`cordis-plugin-development` 无变化)。
+
+DSH 升级后建议对照新版 shipped `cordis` 预设重新同步组合行:各行的配置 schema 会随版本变化,过期的旧字段会导致预设整体挂载失败(进而使会话创建 / resume 报错)。同步时保留 `cordis-tools` 组与 `plugins/cordis-inspect-shim.mjs` 即可维持与 `cordis` 预设的共存能力。
+
 ## 注意事项
 
 - 依赖宿主平面的 `dynamicCordisRunner` / `cordisInspect` 服务(随 DSH web 部署自带);在不提供 host runner 的部署里,`tool-cordis` 相关行会处于等待状态。
