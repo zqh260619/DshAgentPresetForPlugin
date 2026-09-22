@@ -7,6 +7,7 @@
 - ✅ **标准模式全部功能**:shell(bash/pwsh)、文件系统读写与检索、后台任务、goals、计划模式、对话压缩、subagent/subagent_fork(含 Codex / Claude Code 可选行)、workflow、ask-user、todo、`present`、web 搜索。
 - 🔌 **Plugin Manager 持久化插件管理**(`plugin_manager`):`list_plugins` / `list_bundles` / `install_bundle` / `set_plugin` / `set_bundle` / `remove_bundle`。在工作区以普通文件编写 Bundle(`package.json` + `cordis.patch.yml` + Host / Client 入口),安装后按 profile 生效、跨会话共享、重启后保留。
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
+- 🧪 **动态 Cordis 插件工具(本预设恢复)**:`cordis_define` / `cordis_run` / `cordis_stop` / `cordis_undefine` / `cordis_inspect_self`。0.1.6-alpha.2 把它们从官方 `tool-cordis` 中移除,但宿主仍提供 `dynamicCordisRunner`;本预设用一个零依赖本地插件重新注册,可在会话内即时定义、运行、调试、回滚插件,再决定是否固化为持久化 Bundle。
 - 🧠 **两套技能随预设携带**:
   - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整工作流:Bundle 打包、`plugin_manager` 安装、激活结果判读、浏览器验证边界、MCP server 配置;
   - `editing-cordis-compositions` — 编写与修改 Cordis 组合 / Agent 预设:平面判定、服务隔离 realm、profile 与预设的归属。
@@ -19,7 +20,8 @@ DshAgentPresetForPlugin/
 ├── agent.cordis.yml                          # 预设组合(全部插件行)
 ├── preset.yml                                # 显示名与描述
 ├── plugins/
-│   └── cordis-inspect-shim.mjs               # 去重 shim,解决与 cordis 预设的共存冲突
+│   ├── cordis-inspect-shim.mjs               # 去重 shim,解决与 cordis 预设的共存冲突
+│   └── cordis-dynamic-tools.mjs              # 恢复的动态插件工具(define/run/stop/undefine/inspect_self)
 └── skills/
     ├── cordis-plugin-development/SKILL.md    # 持久化插件 / MCP 开发技能
     └── editing-cordis-compositions/SKILL.md  # 组合 / 预设编写技能
@@ -54,6 +56,7 @@ DshAgentPresetForPlugin/
 - **`tool-ralph` 默认 `disabled: true`**:需要时复制本预设为新 id 并移除 `disabled`(shipped 根会遮蔽同 id 的副本)。
 - **persona 大幅扩写**:新增 Plugin Manager 用法、Creator 模式 UI 插件、`cordis_inspect_*` 用法、MCP server 接入与「已安装 Bundle 优先复用」的指引。
 - **两套技能重写**:以持久化插件与 MCP 为主线。
+- **动态工具由本预设恢复**:官方 `tool-cordis` 只保留只读检查工具;本预设新增 `plugins/cordis-dynamic-tools.mjs`,重新注册 `cordis_define` / `cordis_run` / `cordis_stop` / `cordis_undefine` / `cordis_inspect_self`,直接驱动宿主仍提供的 `dynamicCordisRunner`(已在 0.1.6-alpha.2 实测 define → run → inspect_self → stop → undefine 全流程通过)。该文件零依赖(不 import 任何 harness 包),因此可从预设目录直接加载。
 
 历史版本(0.1.5-rc.2)对齐的内容仍保留:`persona` 使用 `prefix` + `suffix`(0.1.0 的 `text` 已移除)、`command-goal`、`present`、`tool-subagent` 的 `modelSelectionSettings`、Codex / Claude Code 的 `backgroundMode: one-shot`、`tool-web` 的 `fetch: true`。
 
@@ -62,6 +65,8 @@ DSH 升级后建议对照新版 shipped `cordis` 预设重新同步组合行:包
 ## 注意事项
 
 - 依赖宿主平面的 `dynamicCordisRunner` / `cordisInspect` 服务(随 DSH web 部署自带);在不提供 host runner 的部署里,`cordis-tools` 组内的行会处于等待状态。
+- 恢复的动态插件工具会执行模型写入的 JavaScript,信任模型与官方 `cordis` 预设一致(等同 shell 权限);它们是进程内临时的,重启即消失——需要长期生效的能力应走 `plugin_manager` 的持久化 Bundle。
+- 预设内的本地插件必须**零依赖**:插件文件位于 workspace / 预设目录,其裸包导入按文件真实路径向上查找 `node_modules`,永远到不了 harness 的安装目录。
 - `plugin_manager` 的每个动作都需要 Full access 或单次批准:它安装的是在宿主进程内、工作区沙箱之外运行的持久化代码;授予某次调用不会改变会话的权限模式。
 - 组合中的相对路径(`./plugins/...`)从预设目录解析,因此整个仓库目录可整体迁移;裸包名(`@deepseek-ai/*`)从宿主安装解析。
 - 技能文本源自 DSH 随附的 `cordis` 预设,随本仓库分发以便预设自包含。

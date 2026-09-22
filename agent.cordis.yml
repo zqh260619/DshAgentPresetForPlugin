@@ -283,6 +283,14 @@
     - id: tool-cordis
       name: '@deepseek-ai/dsh-tool-cordis'
 
+# Restores the dynamic Plugin tools (`cordis_define`, `cordis_run`,
+# `cordis_stop`, `cordis_undefine`, `cordis_inspect_self`) that 0.1.6-alpha.2
+# removed from `@deepseek-ai/dsh-tool-cordis`. They drive the same host
+# `dynamicCordisRunner` the runner row still provides, and the file is
+# dependency-free so the preset can carry it.
+- id: cordis-dynamic-tools
+  name: ./plugins/cordis-dynamic-tools.mjs
+
 # The composition-authoring skill travels with this preset rather than living
 # in the user's skill root: it documents THIS deployment's two planes, and a
 # preset is the unit that gets copied and edited. `baseUrl` is the preset's
