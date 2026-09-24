@@ -1,2 +1,0 @@
-name: DshAgentPresetForPlugin
-description: 用于开发 DeepSeek Harness 插件：具备标准模式的全部功能，并额外提供动态 Cordis 插件工具集（define/run/inspect/stop）及插件开发、组合编写两套技能。

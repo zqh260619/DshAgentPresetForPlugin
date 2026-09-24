@@ -1,0 +1,10 @@
+{
+  "name": "@local/dsh-agent-preset-for-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DshAgentPresetForPlugin: a DeepSeek Harness agent preset for plugin development.",
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  }
+}
