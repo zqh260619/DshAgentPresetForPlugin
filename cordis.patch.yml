@@ -13,7 +13,7 @@
         id: dsh-agent-preset-for-plugin
         order: 10
         name: DshAgentPresetForPlugin
-        description: 用于开发 DeepSeek Harness 插件：具备标准模式的全部功能，并额外提供 Plugin Manager 持久化插件管理、只读运行时检查与插件开发技能。
+        description: 用于开发 DeepSeek Harness 插件：具备标准模式的全部功能，并额外提供 Plugin Manager 持久化插件管理、只读运行时检查与插件开发技能。模式说明与用法示例见仓库 README。
         plugins:
           # Same persona as `standard`: tool descriptions and the skill catalog carry
           # the operating detail, and the skills own the preset-authoring rules.
