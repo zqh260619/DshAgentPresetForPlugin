@@ -139,11 +139,16 @@ DSH 每次升级后:
 
 要点:
 
-- 浏览器以 `--headless --browser chrome` 启动,复用系统 Chrome 通道(不下载 Chromium);使用**本包专用的持久 profile** `$DSH_HOME/cache/browser-profile`,不触碰用户自己的 Chrome 配置,删掉该目录即可重置。
+- 默认是**接入模式**(`--cdp-endpoint`,驱动你自己已登录的 Chrome);想换成自带浏览器则用启动模式(`--headless --browser chrome --user-data-dir <DSH_HOME>/cache/browser-profile`,复用系统 Chrome 通道、不下载 Chromium、不触碰你本人的 Chrome 配置)。两种模式都只影响浏览器进程,不影响会话是否可用。
 - 截图:`--output-dir` 指向 `$DSH_HOME/cache/browser-shots`,并且把 MCP server 的 **cwd** 也固定到该目录——因此**相对文件名**会落在那里(默认情况下会落到 harness 进程目录,例如用户主目录);**绝对路径仍然最可靠**。截图只是 PNG 落盘,需要「模型看见」还要再 `read_image` 一次。
-- **本机 GUI 需要一次认证**:DSH 用启动令牌兑换签名 Cookie 保护 GUI,匿名浏览器访问 `http://127.0.0.1:3080` 会得到 **401 Unauthorized**。做法二选一:
-  1. 把 `dsh web` 启动时打印的**带令牌 URL** 交给 agent 访问一次(也可在用户浏览器历史里找到),Cookie 默认 30 天有效,之后截图正常;
-  2. 或让用户以 `chrome.exe --remote-debugging-port=9222 --user-data-dir=<独立目录>` 启动 Chrome 并访问 GUI,再把该行参数换成 `--cdp-endpoint http://127.0.0.1:9222`(接入已登录浏览器)。
+- **本机 GUI 需要认证,预设用「接入已登录浏览器」解决**:DSH 用启动令牌兑换签名 Cookie 保护 GUI,匿名访问 `http://127.0.0.1:3080` 会得到 **401 Unauthorized**。因此 MCP server 以 `--cdp-endpoint http://127.0.0.1:9222` **接入你自己已登录的 Chrome**,复用其登录状态与标签页,**令牌全程不经过 agent、不进日志**。你只需一次性准备:
+
+  1. 用独立 profile 启动 Chrome 并开远程调试(Chrome 不允许默认 profile 开调试):
+     `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\dsh-agent-chrome`
+  2. 在其中打开 Harness GUI(全新 profile 需一次带令牌的访问:`dsh web` 启动时打印的那行 URL,或你浏览器历史里那次);
+  3. 保持该 Chrome 运行。
+
+  该 Chrome 未运行时 MCP server 连不上端点,浏览器工具就不出现(会话不受影响)。想改用"自带浏览器"模式,把该行的 `--cdp-endpoint …` 换成 `--headless --browser chrome --user-data-dir <DSH_HOME>/cache/browser-profile` 即可(该模式看不到已登录的 GUI)。
 - 除本机 GUI 外的页面(公开站点、自建 dev server 等)无需认证,可直接截图。
 - 同一预设版本的多个会话共享同一个浏览器实例;`failOnStartupError` 保持默认 `false`,浏览器起不来只是没有这些工具,**不会阻断会话创建/恢复**。
 - 需要回滚:删除 `cordis.patch.yml` 里 `browser-playwright` 行并重新应用 bundle 即可。

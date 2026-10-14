@@ -191,13 +191,24 @@
               args:
                 - '-y'
                 - '@playwright/mcp@0.0.80'
-                - '--headless'
-                - '--browser'
-                - chrome
+                # ATTACH mode: drive the browser the user already authenticated,
+                # so the GUI needs no token handling by the agent. The user starts
+                # Chrome once with a dedicated profile and remote debugging:
+                #   chrome.exe --remote-debugging-port=9222 --user-data-dir=<dir>
+                # then opens the Harness GUI in it (one tokenized visit, if the
+                # profile is fresh). Chrome only permits remote debugging on a
+                # non-default user-data-dir.
+                # If that Chrome is not running, this server cannot connect and
+                # the browser tools are simply absent — sessions still compose,
+                # because failOnStartupError stays false.
+                - '--cdp-endpoint'
+                - 'http://127.0.0.1:9222'
+                # LAUNCH alternative (self-contained browser, but it cannot see the
+                # authenticated GUI): replace the two arguments above with
+                #   '--headless', '--browser', chrome, '--user-data-dir',
+                #   !!js dshHomePath('cache', 'browser-profile')
                 - '--viewport-size'
                 - '1920x1080'
-                - '--user-data-dir'
-                - !!js dshHomePath('cache', 'browser-profile')
                 - '--output-dir'
                 - !!js dshHomePath('cache', 'browser-shots')
               failOnStartupError: false

@@ -23,19 +23,24 @@ description: Use when a change must be verified visually or structurally in the 
 4. `read_image` 读回该 PNG 确认渲染结果(不要指望截图自动以内联图片进入上下文)。
 5. 明暗主题、排版一致性:用 `browser_resize` 换视口分别截图对比。
 
-## 打开本机 GUI 需要认证(重要)
+## 打开本机 GUI(本预设默认接入已认证浏览器)
 
-DSH 的 GUI 用**启动令牌兑换签名 Cookie**保护(`dsh-client-connection`):没有 Cookie 时根文档直接返回 **401 Unauthorized**。所以:
+DSH 的 GUI 用**启动令牌兑换签名 Cookie**保护(`dsh-client-connection`):没有 Cookie 时根文档直接返回 **401 Unauthorized**。因此本预设的浏览器以**接入模式**运行——它连接用户已登录的那个 Chrome(`--cdp-endpoint http://127.0.0.1:9222`),复用其登录状态与标签页,**令牌不经过 agent**。
 
-- 匿名浏览器**打不开** `http://127.0.0.1:3080`,这不是权限或配置错误;
-- 认证只需**一次**:让带启动令牌的 URL 在该浏览器里访问一次,就会种下 Cookie(默认 30 天有效),之后复用;
-- 本预设的浏览器使用**专用持久 profile**(`$DSH_HOME/cache/browser-profile`),因此这一次认证会在后续会话中保留;需要重置时删掉该目录即可。
+用户侧一次性准备(你可以把这四步告诉用户):
 
-获得该 URL 的方式:
+1. 用**独立 profile** 启动 Chrome 并开远程调试(Chrome 不允许在默认 profile 上开调试):
+   `chrome.exe --remote-debugging-port=9222 --user-data-dir=%USERPROFILE%\dsh-agent-chrome`
+2. 在其中打开 Harness GUI;若是全新 profile,需要一次带令牌的访问(`dsh web` 启动时打印的那行 URL,或用户自己浏览器历史里那次访问)。
+3. 保持这个 Chrome 窗口运行。
 
-1. **推荐**:请用户把它提供给你 —— `dsh web` 启动时打印的那一行 URL(也可在用户自己浏览器的历史记录里找到带令牌的那次访问)。拿到后 `browser_navigate` 一次,随后正常截图。
-2. **接入用户已登录的浏览器**:让用户以 `chrome.exe --remote-debugging-port=9222 --user-data-dir=<独立目录>` 启动 Chrome,并在其中访问 GUI;再把预设里该行的参数改为 `--cdp-endpoint http://127.0.0.1:9222`(改完需重新应用 bundle,只对之后创建的会话生效)。
-3. 若两者都拿不到,就不要绕:`不要`去翻凭据库、Cookie 库、浏览器配置或历史记录里搜令牌,也不要为此临时用 shell 起浏览器。此时按静态方式验证并如实说明视觉验证不可用。
+之后:
+
+- `browser_navigate` 打开 `http://127.0.0.1:3080` 就能直接看到已登录界面并截图;
+- 该 Chrome **没在运行**时,MCP server 连不上 CDP 端点 ⇒ 工具列表里不会出现 `mcp__playwright__*`;会话本身不受影响(`failOnStartupError: false`)。此时按静态方式验证并如实说明;
+- **不要**自行获取令牌:不要翻凭据库 / Cookie 库 / 浏览器配置 / 历史记录去搜令牌,不要改用户默认浏览器配置,也不要为了截图临时用 shell 另起浏览器。接入模式的意义就是让令牌留在浏览器里;
+- 不需要认证的页面(公开站点、自建 dev server 等)本来就能直接截图。
+- 若用户更想要"自带浏览器"而不是接入:把预设里 `--cdp-endpoint …` 换成 `--headless --browser chrome --user-data-dir <DSH_HOME>/cache/browser-profile`(该模式看不到已登录的 GUI)。
 
 其他地址(GitHub 之外的公开页面、你自己的本地 dev server 等)不需要认证,可以直接截图。
 
