@@ -150,8 +150,16 @@
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'
             config:
+              # NOT `new URL('skills/', baseUrl)`: a patch-inserted row carries the
+              # receiving tree's baseUrl (the harness install), never the patch
+              # file's own directory, so a patch-relative asset path silently
+              # discovers zero skills. Resolve installed packages instead — the
+              # first entry is the shipped expression, the second resolves this
+              # bundle from the profile that installed it (and degrades to the
+              # shipped set when profileContext is unavailable).
               customSkillDirs:
-                - !!js process.getBuiltinModule('node:url').fileURLToPath(new URL('skills/', baseUrl))
+                - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')), 'skills')
+                - !!js "(() => { const p = process.getBuiltinModule('node:path'); const m = process.getBuiltinModule('node:module'); const shipped = () => p.join(p.dirname(m.createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')), 'skills'); try { const pc = ctx.get('profileContext'); if (pc !== undefined && typeof pc.dir === 'string') return p.join(p.dirname(m.createRequire(p.join(pc.dir, 'package.json')).resolve('@local/dsh-agent-preset-for-plugin/package.json')), 'skills') } catch {} return shipped() })()"
           - id: tool-skill
             name: '@deepseek-ai/dsh-tool-skill'
           - id: present

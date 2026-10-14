@@ -1,6 +1,6 @@
 # DshAgentPresetForPlugin
 
-专门用于开发 DeepSeek Harness 插件(plugin / UI 扩展 / MCP 连接)的 Agent 预设。在 `standard`(标准模式)全部功能之上,叠加 **Plugin Manager 持久化插件管理**、**只读运行时 API 发现**、**浏览器与截图(Playwright MCP)**与五套随包携带的技能。
+专门用于开发 DeepSeek Harness 插件(plugin / UI 扩展 / MCP 连接)的 Agent 预设。在 `standard`(标准模式)全部功能之上,叠加 **Plugin Manager 持久化插件管理**、**只读运行时 API 发现**、**浏览器与截图(Playwright MCP)**与官方插件开发技能(外加一套自带的浏览器验证技能)。
 
 自 DSH **0.1.7-rc.1** 起,Agent 预设不再是 `$DSH_HOME/.agent-presets/<id>/` 目录,而是由 **bundle patch 中的 `@deepseek-ai/dsh-agent-preset` 声明行**承载——因此本仓库现在就是一个**可安装的 bundle**:`cordis.patch.yml` 声明预设,`skills/` 随包分发。
 
@@ -10,12 +10,12 @@
 - 🔌 **Plugin Manager 持久化插件管理**(`plugin_manager`):`list_plugins` / `list_bundles` / `install_bundle` / `set_plugin` / `set_bundle` / `remove_bundle`。在工作区以普通文件编写 Bundle(`package.json` + `cordis.patch.yml` + Host / Client 入口),安装后按 profile 生效、跨会话共享、重启后保留。
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
-- 🧠 **五套技能随包携带**(`skills/`):
+- 🧠 **技能**:四套官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的第五套:
   - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整流程,附 `references/` 与可直接复制的 `templates/`;
   - `cordis-composition-reference` — Loader patch 方言(insert / id 覆盖 / group / disabled / isolate / `!!js`)与可安装插件包清单;
   - `editing-cordis-compositions` — 预设与组件的声明、迁移与验证;
   - `agent-experience` — 模型可见工具定义、技能与上下文加载的设计规范;
-  - `browser-verification` — 浏览器验证与截图流程(含本机 GUI 的认证方式与边界)。
+  - `browser-verification`(**本仓库自带**,`skills/browser-verification/`)— 浏览器验证与截图流程(含本机 GUI 的认证方式与边界)。
 
 ## 模式说明
 
@@ -27,7 +27,7 @@
 
 ### 包含哪些能力
 
-在标准模式全部能力之上,额外包含 Plugin Manager 持久化插件管理(安装、启用 / 禁用、卸载 bundle 与插件)、只读运行时 API 发现(`cordis_inspect_list` / `cordis_inspect_query`)、浏览器与截图工具(Playwright MCP),以及五套技能:插件开发与 MCP 接入、Cordis 组合与 patch 方言参考、预设编写与验证、工具与技能设计规范、浏览器验证。
+在标准模式全部能力之上,额外包含 Plugin Manager 持久化插件管理(安装、启用 / 禁用、卸载 bundle 与插件)、只读运行时 API 发现(`cordis_inspect_list` / `cordis_inspect_query`)、浏览器与截图工具(Playwright MCP),以及技能:插件开发与 MCP 接入、Cordis 组合与 patch 方言参考、预设编写与验证、工具与技能设计规范(以上来自官方包),外加本仓库自带的浏览器验证技能。
 
 ### 结果怎样生效
 
@@ -65,7 +65,7 @@
 DshAgentPresetForPlugin/
 ├── package.json                              # bundle 清单(dsh.bundle.patch → cordis.patch.yml)
 ├── cordis.patch.yml                          # 预设声明:preset-dsh-agent-preset-for-plugin
-├── skills/                                   # 随包分发的五套技能(含 references / templates)
+├── skills/                                   # 自带技能(browser-verification);官方四套从已安装包解析
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -103,12 +103,13 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 
 - **新增浏览器与截图行**(`browser-playwright`):经 `@deepseek-ai/dsh-mcp-client` 挂载 Playwright MCP,带来 `mcp__playwright__*` 工具族;仅本预设的会话可见,`failOnStartupError: false` 保证浏览器故障不阻断会话。
 - **技能增加第四套** `browser-verification`(随包携带,说明工具用法、GUI 认证方式与验证边界)。
+- **修复技能解析**:此前 `customSkillDirs` 用的是 patch 相对路径,实际**一套技能都加载不到**;现改为从已安装包解析(官方四套 + 本 bundle 自带),会话技能目录恢复正常。
 
 ### DSH 0.1.7-rc.1
 
 - **目录式预设被声明行取代**:`$DSH_HOME/.agent-presets/<id>/`(`agent.cordis.yml` + `preset.yml`)**已不再被读取**,旧目录已删除;预设改为 `cordis.patch.yml` 中的声明:`config: { id, plugins, name, description, order }`,Loader 行 id 约定为 `preset-<id>`。
 - **Inspect provider 注册上移**:`@deepseek-ai/dsh-tool-cordis/host` 在宿主平面注册一次,预设内的 `tool-cordis` 只消费(`cordis_inspect_list` / `cordis_inspect_query`),不再产生重名冲突。
-- **技能改由包分发**:`skill-filesystem` 的 `customSkillDirs` 指向本包 `skills/`(0.1.7 的 shipped 预设则指向已安装的 `@deepseek-ai/dsh-agent-preset` 包)。
+- **技能改由包分发**:`skill-filesystem` 的 `customSkillDirs` 指向已安装的 `@deepseek-ai/dsh-agent-preset` 包(官方四套),外加从安装本 bundle 的 profile 解析出的本仓库自带技能。
 - **`cordis-composition-reference` 为新增技能**;`cordis-plugin-development` 与 `editing-cordis-compositions` 均已重写。
 
 ### 历史版本对齐内容
@@ -121,7 +122,7 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 DSH 每次升级后:
 
 1. 读新版 shipped 预设 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml`,把 `plugins` 列表同步到本仓库的 `cordis.patch.yml`(包改名 / 移除与配置 schema 变化都会导致预设无法组装会话);
-2. 把 `@deepseek-ai/dsh-agent-preset/skills/` 重新复制到本仓库 `skills/`;
+2. 技能无需手工同步:官方四套从已安装的 `@deepseek-ai/dsh-agent-preset` 包解析,随 DSH 升级自动更新;只需确认自带的 `skills/browser-verification/` 仍与新版本相符;
 3. 重新安装 bundle(`install_bundle`)使改动生效——已运行会话与其子会话保持各自启动时的版本,改动在新会话中验证。
 
 ## 浏览器与截图
@@ -150,9 +151,9 @@ DSH 每次升级后:
 ## 注意事项
 
 - `plugin_manager` 的每个动作都需要 Full access 或单次批准:它安装的是在宿主进程内、工作区沙箱之外运行的持久化代码;授予某次调用不会改变会话的权限模式。
-- 声明里**技能目录**用 `!!js` 从 `baseUrl`(本 patch 所在目录)解析,因此整个仓库目录可整体迁移;插件行里的裸包名(`@deepseek-ai/*`)从宿主安装解析。
+- 声明里**技能目录必须从已安装包解析**:patch 插入的行拿到的是**接收树的 baseUrl**(harness 安装目录),**不是** patch 文件所在目录——`new URL('skills/', baseUrl)` 这种相对写法会静默解析到不存在的目录(结果是一套技能都加载不到)。本预设因此用官方同款 `createRequire(baseUrl).resolve(...)` 解析官方包,再从 `ctx.get('profileContext').dir` 解析本仓库自带的技能。
 - 若某个插件行激活失败,该 `preset-<id>` 行会留在 roster 上并带诊断信息,在修好并重装 bundle 之前无法组装会话。
-- 本包不含任何可执行插件代码,只声明预设并分发技能文本;技能文本源自 DSH 随附的 `@deepseek-ai/dsh-agent-preset` 包。
+- 本包不含可执行插件代码:只声明预设(含一个引用 MCP 客户端的工具行)并分发一套自带技能;其余技能文本来自 DSH 随附的 `@deepseek-ai/dsh-agent-preset` 包。
 
 ## License
 
