@@ -1,6 +1,6 @@
 # DshAgentPresetForPlugin
 
-专门用于开发 DeepSeek Harness 插件(plugin / UI 扩展 / MCP 连接)的 Agent 预设。在 `standard`(标准模式)全部功能之上,叠加 **Plugin Manager 持久化插件管理**、**只读运行时 API 发现**与三套随包携带的插件开发技能。
+专门用于开发 DeepSeek Harness 插件(plugin / UI 扩展 / MCP 连接)的 Agent 预设。在 `standard`(标准模式)全部功能之上,叠加 **Plugin Manager 持久化插件管理**、**只读运行时 API 发现**、**浏览器与截图(Playwright MCP)**与五套随包携带的技能。
 
 自 DSH **0.1.7-rc.1** 起,Agent 预设不再是 `$DSH_HOME/.agent-presets/<id>/` 目录,而是由 **bundle patch 中的 `@deepseek-ai/dsh-agent-preset` 声明行**承载——因此本仓库现在就是一个**可安装的 bundle**:`cordis.patch.yml` 声明预设,`skills/` 随包分发。
 
@@ -9,10 +9,13 @@
 - ✅ **标准模式全部功能**:shell(bash/pwsh)、文件系统读写与检索、后台任务、goals、计划模式、对话压缩、subagent/subagent_fork(含 Codex / Claude Code 可选行)、workflow、ask-user、todo、`present`、web 搜索。
 - 🔌 **Plugin Manager 持久化插件管理**(`plugin_manager`):`list_plugins` / `list_bundles` / `install_bundle` / `set_plugin` / `set_bundle` / `remove_bundle`。在工作区以普通文件编写 Bundle(`package.json` + `cordis.patch.yml` + Host / Client 入口),安装后按 profile 生效、跨会话共享、重启后保留。
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
-- 🧠 **三套技能随包携带**(`skills/`):
+- 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
+- 🧠 **五套技能随包携带**(`skills/`):
   - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整流程,附 `references/` 与可直接复制的 `templates/`;
   - `cordis-composition-reference` — Loader patch 方言(insert / id 覆盖 / group / disabled / isolate / `!!js`)与可安装插件包清单;
-  - `editing-cordis-compositions` — 预设与组件的声明、迁移与验证。
+  - `editing-cordis-compositions` — 预设与组件的声明、迁移与验证;
+  - `agent-experience` — 模型可见工具定义、技能与上下文加载的设计规范;
+  - `browser-verification` — 浏览器验证与截图流程(含本机 GUI 的认证方式与边界)。
 
 ## 模式说明
 
@@ -24,7 +27,7 @@
 
 ### 包含哪些能力
 
-在标准模式全部能力之上,额外包含 Plugin Manager 持久化插件管理(安装、启用 / 禁用、卸载 bundle 与插件)、只读运行时 API 发现(`cordis_inspect_list` / `cordis_inspect_query`),以及三套技能:插件开发与 MCP 接入、Cordis 组合与 patch 方言参考、预设编写与验证。
+在标准模式全部能力之上,额外包含 Plugin Manager 持久化插件管理(安装、启用 / 禁用、卸载 bundle 与插件)、只读运行时 API 发现(`cordis_inspect_list` / `cordis_inspect_query`)、浏览器与截图工具(Playwright MCP),以及五套技能:插件开发与 MCP 接入、Cordis 组合与 patch 方言参考、预设编写与验证、工具与技能设计规范、浏览器验证。
 
 ### 结果怎样生效
 
@@ -62,7 +65,7 @@
 DshAgentPresetForPlugin/
 ├── package.json                              # bundle 清单(dsh.bundle.patch → cordis.patch.yml)
 ├── cordis.patch.yml                          # 预设声明:preset-dsh-agent-preset-for-plugin
-├── skills/                                   # 随包分发的三套技能(含 references / templates)
+├── skills/                                   # 随包分发的五套技能(含 references / templates)
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -96,7 +99,12 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 
 ## 版本兼容性
 
-### DSH 0.1.7-rc.1(当前)
+### DSH 0.2.0-rc.2(当前)
+
+- **新增浏览器与截图行**(`browser-playwright`):经 `@deepseek-ai/dsh-mcp-client` 挂载 Playwright MCP,带来 `mcp__playwright__*` 工具族;仅本预设的会话可见,`failOnStartupError: false` 保证浏览器故障不阻断会话。
+- **技能增加第四套** `browser-verification`(随包携带,说明工具用法、GUI 认证方式与验证边界)。
+
+### DSH 0.1.7-rc.1
 
 - **目录式预设被声明行取代**:`$DSH_HOME/.agent-presets/<id>/`(`agent.cordis.yml` + `preset.yml`)**已不再被读取**,旧目录已删除;预设改为 `cordis.patch.yml` 中的声明:`config: { id, plugins, name, description, order }`,Loader 行 id 约定为 `preset-<id>`。
 - **Inspect provider 注册上移**:`@deepseek-ai/dsh-tool-cordis/host` 在宿主平面注册一次,预设内的 `tool-cordis` 只消费(`cordis_inspect_list` / `cordis_inspect_query`),不再产生重名冲突。
@@ -115,6 +123,29 @@ DSH 每次升级后:
 1. 读新版 shipped 预设 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml`,把 `plugins` 列表同步到本仓库的 `cordis.patch.yml`(包改名 / 移除与配置 schema 变化都会导致预设无法组装会话);
 2. 把 `@deepseek-ai/dsh-agent-preset/skills/` 重新复制到本仓库 `skills/`;
 3. 重新安装 bundle(`install_bundle`)使改动生效——已运行会话与其子会话保持各自启动时的版本,改动在新会话中验证。
+
+## 浏览器与截图
+
+预设通过**已安装的 MCP 客户端**(`@deepseek-ai/dsh-mcp-client`)挂载 **Playwright MCP**(`@playwright/mcp@0.0.80`),因此会话里出现 `mcp__playwright__*` 工具族:
+
+| 工具 | 用途 |
+|---|---|
+| `mcp__playwright__browser_navigate` | 打开 URL |
+| `mcp__playwright__browser_snapshot` | 无障碍树快照(结构 / 文本 / 可交互元素) |
+| `mcp__playwright__browser_take_screenshot` | 截图(`filename`、`fullPage`、`scale: device`) |
+| `mcp__playwright__browser_click` / `browser_type` / `browser_press_key` / `browser_select_form` | 交互 |
+| `mcp__playwright__browser_tabs` / `browser_resize` / `browser_wait_for` | 标签页、视口、等待 |
+
+要点:
+
+- 浏览器以 `--headless --browser chrome` 启动,复用系统 Chrome 通道(不下载 Chromium);使用**本包专用的持久 profile** `$DSH_HOME/cache/browser-profile`,不触碰用户自己的 Chrome 配置,删掉该目录即可重置。
+- 截图默认落在 `$DSH_HOME/cache/browser-shots`;**给 `filename` 传绝对路径**最可靠(相对名会落到 MCP 进程的 cwd)。
+- **本机 GUI 需要一次认证**:DSH 用启动令牌兑换签名 Cookie 保护 GUI,匿名浏览器访问 `http://127.0.0.1:3080` 会得到 **401 Unauthorized**。做法二选一:
+  1. 把 `dsh web` 启动时打印的**带令牌 URL** 交给 agent 访问一次(也可在用户浏览器历史里找到),Cookie 默认 30 天有效,之后截图正常;
+  2. 或让用户以 `chrome.exe --remote-debugging-port=9222 --user-data-dir=<独立目录>` 启动 Chrome 并访问 GUI,再把该行参数换成 `--cdp-endpoint http://127.0.0.1:9222`(接入已登录浏览器)。
+- 除本机 GUI 外的页面(公开站点、自建 dev server 等)无需认证,可直接截图。
+- 同一预设版本的多个会话共享同一个浏览器实例;`failOnStartupError` 保持默认 `false`,浏览器起不来只是没有这些工具,**不会阻断会话创建/恢复**。
+- 需要回滚:删除 `cordis.patch.yml` 里 `browser-playwright` 行并重新应用 bundle 即可。
 
 ## 注意事项
 
