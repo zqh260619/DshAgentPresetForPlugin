@@ -5,3 +5,6 @@ Desktop.ini
 
 # Logs
 *.log
+
+# Local verification artifacts (screenshots and similar evidence)
+artifacts/

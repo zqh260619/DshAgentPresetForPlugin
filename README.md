@@ -140,7 +140,7 @@ DSH 每次升级后:
 要点:
 
 - 浏览器以 `--headless --browser chrome` 启动,复用系统 Chrome 通道(不下载 Chromium);使用**本包专用的持久 profile** `$DSH_HOME/cache/browser-profile`,不触碰用户自己的 Chrome 配置,删掉该目录即可重置。
-- 截图默认落在 `$DSH_HOME/cache/browser-shots`;**给 `filename` 传绝对路径**最可靠(相对名会落到 MCP 进程的 cwd)。
+- 截图:`--output-dir` 指向 `$DSH_HOME/cache/browser-shots`,并且把 MCP server 的 **cwd** 也固定到该目录——因此**相对文件名**会落在那里(默认情况下会落到 harness 进程目录,例如用户主目录);**绝对路径仍然最可靠**。截图只是 PNG 落盘,需要「模型看见」还要再 `read_image` 一次。
 - **本机 GUI 需要一次认证**:DSH 用启动令牌兑换签名 Cookie 保护 GUI,匿名浏览器访问 `http://127.0.0.1:3080` 会得到 **401 Unauthorized**。做法二选一:
   1. 把 `dsh web` 启动时打印的**带令牌 URL** 交给 agent 访问一次(也可在用户浏览器历史里找到),Cookie 默认 30 天有效,之后截图正常;
   2. 或让用户以 `chrome.exe --remote-debugging-port=9222 --user-data-dir=<独立目录>` 启动 Chrome 并访问 GUI,再把该行参数换成 `--cdp-endpoint http://127.0.0.1:9222`(接入已登录浏览器)。

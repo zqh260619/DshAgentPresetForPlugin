@@ -182,6 +182,12 @@
               transport: stdio
               serverName: playwright
               command: npx
+              # Relative screenshot filenames resolve against the SERVER's cwd,
+              # not the session workspace, and `--output-dir` only names the
+              # server's own auto artifacts. Pin cwd (and create it) so a
+              # relative name lands in DSH's cache instead of the harness
+              # process directory; absolute paths are still preferred.
+              cwd: !!js "(() => { const fs = process.getBuiltinModule('node:fs'); const dir = dshHomePath('cache', 'browser-shots'); fs.mkdirSync(dir, { recursive: true }); return dir })()"
               args:
                 - '-y'
                 - '@playwright/mcp@0.0.80'
