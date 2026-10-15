@@ -8,3 +8,4 @@ Desktop.ini
 
 # Local verification artifacts (screenshots and similar evidence)
 artifacts/
+tmp/

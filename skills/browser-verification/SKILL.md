@@ -19,7 +19,7 @@ description: Use when a change must be verified visually or structurally in the 
 
 1. `browser_navigate` 打开目标页面(本机 GUI 为 `http://127.0.0.1:3080`)。
 2. `browser_snapshot` 断言结构:目标 Slot/文案/属性是否真的出现。这一步替代"静态断言 CSS 字号与 DOM 结构"。
-3. `browser_take_screenshot` —— **传 `filename`,优先绝对路径**。相对名以 MCP server 的 **cwd** 为基准(MCP 的 `--output-dir` 只影响 server 自己命名的快照与日志);本预设已把该 cwd 固定为 `$DSH_HOME/cache/browser-shots`,所以相对名会落在那里,而不是 harness 进程目录。需要进仓库时再复制过去,并清理临时产物。
+3. `browser_take_screenshot` —— 直接传**工作区内的绝对路径**即可:预设已开 `--allow-unrestricted-file-access`,不受 MCP 允许根限制(没有这个开关时它会报 `File access denied: … is outside allowed roots`,只允许写 `cwd` / `--output-dir`)。相对名以 MCP server 的 **cwd** 为基准,本预设把该 cwd 与 `--output-dir` 都固定在 `$DSH_HOME/cache/browser-shots`。截完用 `read_image` 读回,并清理不需要的中间产物——写进工作区时别留下未跟踪文件(优先写已 gitignore 的目录,例如 `tmp/`、`artifacts/`)。
 4. `read_image` 读回该 PNG 确认渲染结果(不要指望截图自动以内联图片进入上下文)。
 5. 明暗主题、排版一致性:用 `browser_resize` 换视口分别截图对比。
 

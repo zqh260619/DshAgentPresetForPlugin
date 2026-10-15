@@ -140,7 +140,7 @@ DSH 每次升级后:
 要点:
 
 - 默认是**接入模式**(`--cdp-endpoint`,驱动你自己已登录的 Chrome);想换成自带浏览器则用启动模式(`--headless --browser chrome --user-data-dir <DSH_HOME>/cache/browser-profile`,复用系统 Chrome 通道、不下载 Chromium、不触碰你本人的 Chrome 配置)。两种模式都只影响浏览器进程,不影响会话是否可用。
-- 截图:`--output-dir` 指向 `$DSH_HOME/cache/browser-shots`,并且把 MCP server 的 **cwd** 也固定到该目录——因此**相对文件名**会落在那里(默认情况下会落到 harness 进程目录,例如用户主目录);**绝对路径仍然最可靠**。截图只是 PNG 落盘,需要「模型看见」还要再 `read_image` 一次。
+- 截图:可直接写**工作区绝对路径**——预设开了 `--allow-unrestricted-file-access`(不开时 server 只允许写自己的允许根,会报 `File access denied: … is outside allowed roots`)。相对文件名以 server 的 **cwd** 为基准,而该 cwd 与 `--output-dir` 都固定在 `$DSH_HOME/cache/browser-shots`。截图只是 PNG 落盘,要让「模型看见」还需再 `read_image` 一次。
 - **本机 GUI 需要认证,预设用「接入已登录浏览器」解决**:DSH 用启动令牌兑换签名 Cookie 保护 GUI,匿名访问 `http://127.0.0.1:3080` 会得到 **401 Unauthorized**。因此 MCP server 以 `--cdp-endpoint http://127.0.0.1:9222` **接入你自己已登录的 Chrome**,复用其登录状态与标签页,**令牌全程不经过 agent、不进日志**。你只需一次性准备:
 
   1. 用独立 profile 启动 Chrome 并开远程调试(Chrome 不允许默认 profile 开调试):

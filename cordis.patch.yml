@@ -169,24 +169,18 @@
             disabled: !!js "!ctx.get('profileContext')"
           # Browser automation for visual verification and screenshots, carried by
           # the already-installed MCP client (no extra profile dependency).
-          # `--user-data-dir` points at a dedicated DSH-owned profile, so the
-          # agent never touches the user's own Chrome profile while still keeping
-          # the signed session cookie across runs. `--browser chrome` reuses the
-          # installed Chrome channel instead of downloading Chromium.
           # `failOnStartupError` stays at the client default (false), so a browser
-          # that cannot start only costs the tools — it never blocks session
-          # creation or resume.
+          # that cannot start or attach only costs the tools — it never blocks
+          # session creation or resume.
           - id: browser-playwright
             name: '@deepseek-ai/dsh-mcp-client'
             config:
               transport: stdio
               serverName: playwright
               command: npx
-              # Relative screenshot filenames resolve against the SERVER's cwd,
-              # not the session workspace, and `--output-dir` only names the
-              # server's own auto artifacts. Pin cwd (and create it) so a
-              # relative name lands in DSH's cache instead of the harness
-              # process directory; absolute paths are still preferred.
+              # Pin (and create) the server's cwd: a relative screenshot filename
+              # resolves against it, while `--output-dir` only names the server's
+              # own auto artifacts.
               cwd: !!js "(() => { const fs = process.getBuiltinModule('node:fs'); const dir = dshHomePath('cache', 'browser-shots'); fs.mkdirSync(dir, { recursive: true }); return dir })()"
               args:
                 - '-y'
@@ -195,12 +189,9 @@
                 # so the GUI needs no token handling by the agent. The user starts
                 # Chrome once with a dedicated profile and remote debugging:
                 #   chrome.exe --remote-debugging-port=9222 --user-data-dir=<dir>
-                # then opens the Harness GUI in it (one tokenized visit, if the
+                # then opens the Harness GUI in it (one tokenized visit if the
                 # profile is fresh). Chrome only permits remote debugging on a
                 # non-default user-data-dir.
-                # If that Chrome is not running, this server cannot connect and
-                # the browser tools are simply absent — sessions still compose,
-                # because failOnStartupError stays false.
                 - '--cdp-endpoint'
                 - 'http://127.0.0.1:9222'
                 # LAUNCH alternative (self-contained browser, but it cannot see the
@@ -209,6 +200,12 @@
                 #   !!js dshHomePath('cache', 'browser-profile')
                 - '--viewport-size'
                 - '1920x1080'
+                # Without this the server writes only inside its allowed root
+                # (cwd / --output-dir) and refuses an absolute path elsewhere,
+                # which forces a copy-out step for every workspace screenshot.
+                # The agent already has full file access through its own tools, so
+                # this removes friction rather than granting new reach.
+                - '--allow-unrestricted-file-access'
                 - '--output-dir'
                 - !!js dshHomePath('cache', 'browser-shots')
               failOnStartupError: false
