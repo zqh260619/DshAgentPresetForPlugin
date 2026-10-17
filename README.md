@@ -10,12 +10,14 @@
 - 🔌 **Plugin Manager 持久化插件管理**(`plugin_manager`):`list_plugins` / `list_bundles` / `install_bundle` / `set_plugin` / `set_bundle` / `remove_bundle`。在工作区以普通文件编写 Bundle(`package.json` + `cordis.patch.yml` + Host / Client 入口),安装后按 profile 生效、跨会话共享、重启后保留。
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
-- 🧠 **技能**:四套官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的第五套:
+- 🖥️ **桌面截图(OS 层)**:随包附带 `tools/screen-capture.ps1`,用会话自带的 `pwsh` 就能截**原生 toast / 系统对话框 / 托盘 / 其它应用窗口**,并支持「先开监听再触发、只留状态变化帧」的 watch 模式。默认关闭,需用户创建一次标记文件才启用(见下文)。
+- 🧠 **技能**:四套官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的两套:
   - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整流程,附 `references/` 与可直接复制的 `templates/`;
   - `cordis-composition-reference` — Loader patch 方言(insert / id 覆盖 / group / disabled / isolate / `!!js`)与可安装插件包清单;
   - `editing-cordis-compositions` — 预设与组件的声明、迁移与验证;
   - `agent-experience` — 模型可见工具定义、技能与上下文加载的设计规范;
-  - `browser-verification`(**本仓库自带**,`skills/browser-verification/`)— 浏览器验证与截图流程(含本机 GUI 的认证方式与边界)。
+  - `browser-verification`(**本仓库自带**)— 浏览器验证与截图流程(含本机 GUI 的认证方式与边界);
+  - `desktop-verification`(**本仓库自带**)— OS 层验证:toast / 系统对话框 / 托盘 / 其它应用窗口,含 watch 抓帧与隐私纪律。
 
 ## 模式说明
 
@@ -65,7 +67,9 @@
 DshAgentPresetForPlugin/
 ├── package.json                              # bundle 清单(dsh.bundle.patch → cordis.patch.yml)
 ├── cordis.patch.yml                          # 预设声明:preset-dsh-agent-preset-for-plugin
-├── skills/                                   # 自带技能(browser-verification);官方四套从已安装包解析
+├── skills/                                   # 自带技能(browser-verification、desktop-verification);官方四套从已安装包解析
+├── tools/
+│   └── screen-capture.ps1                    # OS 层截图 / watch 抓帧(门禁:默认关闭)
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -104,6 +108,7 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 - **新增浏览器与截图行**(`browser-playwright`):经 `@deepseek-ai/dsh-mcp-client` 挂载 Playwright MCP,带来 `mcp__playwright__*` 工具族;仅本预设的会话可见,`failOnStartupError: false` 保证浏览器故障不阻断会话。
 - **技能增加第四套** `browser-verification`(随包携带,说明工具用法、GUI 认证方式与验证边界)。
 - **修复技能解析**:此前 `customSkillDirs` 用的是 patch 相对路径,实际**一套技能都加载不到**;现改为从已安装包解析(官方四套 + 本 bundle 自带),会话技能目录恢复正常。
+- **新增桌面截图能力**:`tools/screen-capture.ps1`(每-monitor-V2 DPI 感知、区域/整屏、watch 差异筛选、默认关闭门禁)+ 技能 `desktop-verification`,补齐 Playwright 无法覆盖的 OS 层验证。
 
 ### DSH 0.1.7-rc.1
 
@@ -153,12 +158,45 @@ DSH 每次升级后:
 - 同一预设版本的多个会话共享同一个浏览器实例;`failOnStartupError` 保持默认 `false`,浏览器起不来只是没有这些工具,**不会阻断会话创建/恢复**。
 - 需要回滚:删除 `cordis.patch.yml` 里 `browser-playwright` 行并重新应用 bundle 即可。
 
+## 桌面截图(OS 层)
+
+`browser_take_screenshot` 只能截网页,**原生 toast、系统对话框、托盘弹窗、其它应用窗口都截不到**。这类验证用随包附带的 `tools/screen-capture.ps1`(会话自带的 `pwsh` 直接调用,无需全局安装)。
+
+**门禁:默认关闭。** 脚本要求标记文件 `$DSH_HOME/screen-capture.enabled` 存在,否则返回 `{"error":"screen capture is disabled; …"}` 并以退出码 2 结束。启用一次:
+
+```powershell
+New-Item -ItemType File -Force "$env:DSH_HOME\screen-capture.enabled"
+```
+
+用法(坐标一律物理像素;脚本内部先声明 per-monitor-V2 DPI 感知,缩放屏也不会切边):
+
+```powershell
+$cap = '<bundle>\tools\screen-capture.ps1'
+
+# 一次性:区域(推荐,隐私优先) / 整屏(必须显式)
+powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode capture -Clip "1520,960,400,120"
+powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode capture -Fullscreen
+
+# watch:先开监听 → 再触发 → 只收"状态变化帧"(抓 toast 的正确姿势)
+powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode watch -Clip "1520,960,400,120" -DurationMs 15000 -IntervalMs 700 -Threshold 30
+```
+
+返回 JSON:`capture` → `{path,width,height,scale,screen,region,mimeType,bytes}`;`watch` → `{frames:[{path,at,diff,bytes}],changed,restored,captured,threshold,…,dir}`。
+
+设计要点:
+
+- **只有"新状态"帧会被写盘**(与基线差异够大、且与上一张入选帧不同);未入选的帧根本不保存,所以事后无需删除——隐私上比"先全存再删"更干净;
+- watch 上限:`DurationMs ≤ 120000`、`IntervalMs 100–5000`、`MaxFrames ≤ 300`、单帧 ≤ 8 MB;
+- 截图只是 PNG 落盘,要让「模型看见」还需 `read_image`;用完把 `dir` 整个删掉,别把帧留在仓库里(要留就放 `artifacts/`、`tmp/` 这类已 gitignore 的目录)。
+
+> 为什么不用官方 Computer Use:`@deepseek-ai/dsh-experimental-computer-use-*` 在 0.2.0-rc.2 轨上确实有(带 native Cua SDK),但它提供的是「截图 + 鼠标键盘控制」,没有这里需要的 **watch/差异筛选**,还多出一大块输入控制面。本仓库因此选择只读的独立脚本。
+
 ## 注意事项
 
 - `plugin_manager` 的每个动作都需要 Full access 或单次批准:它安装的是在宿主进程内、工作区沙箱之外运行的持久化代码;授予某次调用不会改变会话的权限模式。
 - 声明里**技能目录必须从已安装包解析**:patch 插入的行拿到的是**接收树的 baseUrl**(harness 安装目录),**不是** patch 文件所在目录——`new URL('skills/', baseUrl)` 这种相对写法会静默解析到不存在的目录(结果是一套技能都加载不到)。本预设因此用官方同款 `createRequire(baseUrl).resolve(...)` 解析官方包,再从 `ctx.get('profileContext').dir` 解析本仓库自带的技能。
 - 若某个插件行激活失败,该 `preset-<id>` 行会留在 roster 上并带诊断信息,在修好并重装 bundle 之前无法组装会话。
-- 本包不含可执行插件代码:只声明预设(含一个引用 MCP 客户端的工具行)并分发一套自带技能;其余技能文本来自 DSH 随附的 `@deepseek-ai/dsh-agent-preset` 包。
+- 本包不含插件代码:预设声明里只引用已安装的 MCP 客户端;自带内容是两套技能与一个**默认关闭**的桌面截图脚本(以及固定浏览器地址的 `cwd`)。
 
 ## License
 
