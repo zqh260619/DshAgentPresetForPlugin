@@ -1,11 +1,16 @@
 # DshAgentPresetForPlugin: one `@deepseek-ai/dsh-agent-preset` declaration,
 # installed into the current profile as a bundle patch.
 #
-# DSH 0.1.7 replaced directory presets (`$DSH_HOME/.agent-presets/<id>/`) with
-# declaration rows carried by bundle patches, so this preset now travels as an
-# installed package rather than as `agent.cordis.yml`. The plugin list mirrors
-# the shipped `cordis` preset; `skills/` travels beside this patch and is
-# mounted through `skill-filesystem`.
+# Row-for-row mirror of the shipped `cordis` preset as of DSH **0.2.1-rc.1**
+# (0.2.1 added `time-context`, `tool-schedule` and `tool-plugin-market`, moved
+# the working directory out of `persona.suffix`, and dropped `backgroundMode`,
+# the Codex / Claude Code subagent rows and `tool-ralph`). The plugin list is
+# copied verbatim from `dsh-web-app/presets/cordis.patch.yml`; re-sync it when
+# DSH upgrades.
+#
+# This bundle adds two things on top of the mirror:
+#   * `browser-playwright` — Playwright MCP over the installed mcp-client;
+#   * a second `customSkillDirs` entry — this bundle's own skills.
 - insert:
     - id: preset-dsh-agent-preset-for-plugin
       name: '@deepseek-ai/dsh-agent-preset'
@@ -20,13 +25,14 @@
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
-              suffix: Your working directory is {{cwd}}.
               prefix: >-
                 You are a coding agent powered by the {{model}} model.
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
             config:
               maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
           - id: tool-bash
             name: '@deepseek-ai/dsh-tool-bash'
             disabled: !!js process.platform === 'win32'
@@ -41,6 +47,8 @@
               sampleOverCapGlobResults: false
           - id: tool-jobs
             name: '@deepseek-ai/dsh-tool-jobs'
+          - id: tool-schedule
+            name: '@deepseek-ai/dsh-tool-schedule'
           - id: command-goal
             name: '@deepseek-ai/dsh-command-goal'
           - id: tool-goal
@@ -55,7 +63,7 @@
                 name: '@deepseek-ai/dsh-plan-mode'
                 config:
                   section: |
-                    You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+                    You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
 
                     Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
 
@@ -99,41 +107,17 @@
                   provider: spawn
                   toolName: subagent
                   modelSelectionSettings: true
-                  backgroundMode: continuable
               - id: tool-subagent-fork
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
                   provider: fork
                   toolName: subagent_fork
-                  backgroundMode: continuable
-              - id: tool-subagent-codex
-                name: '@deepseek-ai/dsh-tool-subagent'
-                disabled: true
-                config:
-                  provider: codex
-                  toolName: subagent_codex
-                  backgroundMode: one-shot
-                  maxDepth: provider-managed
-              - id: tool-subagent-claude-code
-                name: '@deepseek-ai/dsh-tool-subagent'
-                disabled: true
-                config:
-                  provider: claude-code
-                  toolName: subagent_claude_code
-                  backgroundMode: one-shot
-                  maxDepth: provider-managed
               - id: workflow-ptc
                 name: '@deepseek-ai/dsh-workflow-ptc'
                 config:
                   provider: spawn
               - id: tool-workflow
                 name: '@deepseek-ai/dsh-tool-workflow'
-              - id: tool-ralph
-                name: '@deepseek-ai/dsh-tool-ralph'
-                disabled: true
-                config:
-                  subagentProvider: spawn
-                  maxRounds: 64
           - id: tool-ask-user
             name: '@deepseek-ai/dsh-tool-ask-user'
           - id: tool-todo
@@ -150,13 +134,6 @@
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'
             config:
-              # NOT `new URL('skills/', baseUrl)`: a patch-inserted row carries the
-              # receiving tree's baseUrl (the harness install), never the patch
-              # file's own directory, so a patch-relative asset path silently
-              # discovers zero skills. Resolve installed packages instead — the
-              # first entry is the shipped expression, the second resolves this
-              # bundle from the profile that installed it (and degrades to the
-              # shipped set when profileContext is unavailable).
               customSkillDirs:
                 - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')), 'skills')
                 - !!js "(() => { const p = process.getBuiltinModule('node:path'); const m = process.getBuiltinModule('node:module'); const shipped = () => p.join(p.dirname(m.createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')), 'skills'); try { const pc = ctx.get('profileContext'); if (pc !== undefined && typeof pc.dir === 'string') return p.join(p.dirname(m.createRequire(p.join(pc.dir, 'package.json')).resolve('@local/dsh-agent-preset-for-plugin/package.json')), 'skills') } catch {} return shipped() })()"
@@ -167,11 +144,34 @@
           - id: tool-plugin-manager
             name: '@deepseek-ai/dsh-plugin-manager/tools'
             disabled: !!js "!ctx.get('profileContext')"
-          # Browser automation for visual verification and screenshots, carried by
-          # the already-installed MCP client (no extra profile dependency).
-          # `failOnStartupError` stays at the client default (false), so a browser
-          # that cannot start or attach only costs the tools — it never blocks
-          # session creation or resume.
+          - id: tool-plugin-market
+            name: '@deepseek-ai/dsh-plugin-market/tools'
+            disabled: !!js "!ctx.get('profileContext')"
+
+          # Optional delegation backends shipped before 0.2.1. The providers now
+          # live in separate packages that 0.2.1 does not ship, and the shipped
+          # `cordis` preset no longer mounts them; enable only after adding the
+          # packages to the profile.
+          # - id: tool-subagent-codex
+          #   name: '@deepseek-ai/dsh-tool-subagent'
+          #   disabled: true
+          #   config:
+          #     provider: codex
+          #     toolName: subagent_codex
+          #     maxDepth: provider-managed
+          # - id: tool-subagent-claude-code
+          #   name: '@deepseek-ai/dsh-tool-subagent'
+          #   disabled: true
+          #   config:
+          #     provider: claude-code
+          #     toolName: subagent_claude_code
+          #     maxDepth: provider-managed
+          # - id: tool-ralph
+          #   name: '@deepseek-ai/dsh-tool-ralph'
+          #   disabled: true
+          #   config:
+          #     subagentProvider: spawn
+          #     maxRounds: 64
           - id: browser-playwright
             name: '@deepseek-ai/dsh-mcp-client'
             config:

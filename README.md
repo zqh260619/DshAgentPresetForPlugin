@@ -6,7 +6,7 @@
 
 ## 特性
 
-- ✅ **标准模式全部功能**:shell(bash/pwsh)、文件系统读写与检索、后台任务、goals、计划模式、对话压缩、subagent/subagent_fork(含 Codex / Claude Code 可选行)、workflow、ask-user、todo、`present`、web 搜索。
+- ✅ **标准模式全部功能**:shell(bash/pwsh)、文件系统读写与检索、后台任务、定时提醒(`schedule_create/list/update/delete`)、时间上下文、goals、计划模式、对话压缩、subagent/subagent_fork(Codex / Claude Code provider 自 0.2.1 起拆为独立包,默认不挂载,本仓库以注释块保留)、workflow、ask-user、todo、`present`、web 搜索、插件市场工具(`plugin_market`)。
 - 🔌 **Plugin Manager 持久化插件管理**(`plugin_manager`):`list_plugins` / `list_bundles` / `install_bundle` / `set_plugin` / `set_bundle` / `remove_bundle`。在工作区以普通文件编写 Bundle(`package.json` + `cordis.patch.yml` + Host / Client 入口),安装后按 profile 生效、跨会话共享、重启后保留。
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
@@ -97,13 +97,21 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 
 ## 与 shipped `cordis`(创造模式)预设的关系
 
-- 本预设的 `plugins` 列表**逐行镜像** shipped `cordis` 预设(以 0.1.7-rc.1 的 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml` 为基准),只改了 `id` / `name` / `description` / `order`,并把技能目录指向本包自带的 `skills/`。
-- 因此它等价于「一份你自己拥有、可自由改动的创造模式」:官方升级不会覆盖它,你可以在此基础上增删行(例如启用 `tool-ralph`、加 Codex 子代理行)。
+- 本预设的 `plugins` 列表**逐行镜像** shipped `cordis` 预设(以 **0.2.1-rc.1** 的 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml` 为基准),只改了 `id` / `name` / `description` / `order`,再叠加浏览器行与自带的技能目录。
+- 因此它等价于「一份你自己拥有、可自由改动的创造模式」:官方升级不会覆盖它,你可以在此基础上增删行(例如按注释块启用 `tool-ralph`、Codex / Claude Code 子代理行)。
 - **不再需要共存 shim**:0.1.6 时代 `tool-cordis` 会把 Inspect provider 注册进进程全局 registry,导致两个预设无法同进程共存;0.1.7-rc.1 已把这部分拆到宿主行 `@deepseek-ai/dsh-tool-cordis/host`(注释明确 "registers once per process"),根因由官方修复,本仓库随之删除了旧的 `plugins/cordis-inspect-shim.mjs`。
 
 ## 版本兼容性
 
-### DSH 0.2.0-rc.2(当前)
+### DSH 0.2.1-rc.1(当前)
+
+- **声明整体对齐 shipped `cordis`**:`time-context`、`tool-schedule`(`schedule_create/list/update/delete`)、`tool-plugin-market`(`plugin_market`)三行补入;`persona` 去掉 `suffix`(工作目录改由运行时上下文提供);`plan-mode` 段落更新为 0.2.1 文案。
+- **修掉一处硬性漂移**:`tool-subagent` 的 `backgroundMode` 字段在 0.2.1 已从配置 schema 移除,本预设的 spawn / fork 行不再带它。
+- **移除过时行**:`tool-subagent-codex`、`tool-subagent-claude-code`(provider 包在 0.2.1 未随附,shipped 也不再挂载)与 `tool-ralph`(shipped 已移除)改为注释块保留,需要时按注释启用。
+- 桌面端与 Web 端共用同一份仓库(desktop profile 的 `link:` 与本仓库 junction 指向同一目录),声明只维护一处。
+- 不受影响:`dsh-mcp-client` 配置 schema 未变(浏览器行照旧)、技能解析表达式未变、官方技能仍为四套、`tools/screen-capture.ps1` 与 `DSH_HOME` 约定未变。
+
+### DSH 0.2.0-rc.2
 
 - **新增浏览器与截图行**(`browser-playwright`):经 `@deepseek-ai/dsh-mcp-client` 挂载 Playwright MCP,带来 `mcp__playwright__*` 工具族;仅本预设的会话可见,`failOnStartupError: false` 保证浏览器故障不阻断会话。
 - **技能增加第四套** `browser-verification`(随包携带,说明工具用法、GUI 认证方式与验证边界)。
@@ -127,7 +135,7 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 DSH 每次升级后:
 
 1. 读新版 shipped 预设 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml`,把 `plugins` 列表同步到本仓库的 `cordis.patch.yml`(包改名 / 移除与配置 schema 变化都会导致预设无法组装会话);
-2. 技能无需手工同步:官方四套从已安装的 `@deepseek-ai/dsh-agent-preset` 包解析,随 DSH 升级自动更新;只需确认自带的 `skills/browser-verification/` 仍与新版本相符;
+2. 技能无需手工同步:官方四套从已安装的 `@deepseek-ai/dsh-agent-preset` 包解析,随 DSH 升级自动更新;只需确认自带的 `browser-verification` 与 `desktop-verification` 仍与新版本相符;
 3. 重新安装 bundle(`install_bundle`)使改动生效——已运行会话与其子会话保持各自启动时的版本,改动在新会话中验证。
 
 ## 浏览器与截图
