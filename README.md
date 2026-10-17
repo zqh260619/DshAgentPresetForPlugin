@@ -6,7 +6,7 @@
 
 ## 特性
 
-- ✅ **标准模式全部功能**:shell(bash/pwsh)、文件系统读写与检索、后台任务、定时提醒(`schedule_create/list/update/delete`)、时间上下文、goals、计划模式、对话压缩、subagent/subagent_fork(Codex / Claude Code provider 自 0.2.1 起拆为独立包,默认不挂载,本仓库以注释块保留)、workflow、ask-user、todo、`present`、web 搜索、插件市场工具(`plugin_market`)。
+- ✅ **标准模式全部功能**:shell(bash/pwsh)、文件系统读写与检索、后台任务、定时提醒(`schedule_create/list/update/delete`)、时间上下文、goals、计划模式、对话压缩、subagent/subagent_fork(Codex / Claude Code provider 自 0.2.1 起拆为独立包,默认不挂载,本仓库以注释块保留)、workflow、ask-user、todo、`present`、web 搜索、插件市场行(`plugin_market` —— 条件注册:仅当 profile 安装了提供 `pluginMarket` 服务的市场 bundle,例如 `@deepseek-ai/dsh-experimental-plugin-market-bundle`,该工具才会出现)。
 - 🔌 **Plugin Manager 持久化插件管理**(`plugin_manager`):`list_plugins` / `list_bundles` / `install_bundle` / `set_plugin` / `set_bundle` / `remove_bundle`。在工作区以普通文件编写 Bundle(`package.json` + `cordis.patch.yml` + Host / Client 入口),安装后按 profile 生效、跨会话共享、重启后保留。
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
@@ -105,7 +105,7 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 
 ### DSH 0.2.1-rc.1(当前)
 
-- **声明整体对齐 shipped `cordis`**:`time-context`、`tool-schedule`(`schedule_create/list/update/delete`)、`tool-plugin-market`(`plugin_market`)三行补入;`persona` 去掉 `suffix`(工作目录改由运行时上下文提供);`plan-mode` 段落更新为 0.2.1 文案。
+- **声明整体对齐 shipped `cordis`**:`time-context`、`tool-schedule`(`schedule_create/list/update/delete`)、`tool-plugin-market`(`plugin_market`)三行补入;`persona` 去掉 `suffix`(工作目录改由运行时上下文提供);`plan-mode` 段落更新为 0.2.1 文案。其中 `plugin_market` 是**条件注册**:只有 profile 安装了提供 `pluginMarket` 服务的市场 bundle 时工具才出现(未安装时该行无副作用,会话照常组装)。
 - **修掉一处硬性漂移**:`tool-subagent` 的 `backgroundMode` 字段在 0.2.1 已从配置 schema 移除,本预设的 spawn / fork 行不再带它。
 - **移除过时行**:`tool-subagent-codex`、`tool-subagent-claude-code`(provider 包在 0.2.1 未随附,shipped 也不再挂载)与 `tool-ralph`(shipped 已移除)改为注释块保留,需要时按注释启用。
 - 桌面端与 Web 端共用同一份仓库(desktop profile 的 `link:` 与本仓库 junction 指向同一目录),声明只维护一处。
