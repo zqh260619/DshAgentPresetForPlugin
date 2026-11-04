@@ -69,7 +69,8 @@ DshAgentPresetForPlugin/
 ├── cordis.patch.yml                          # 预设声明:preset-dsh-agent-preset-for-plugin
 ├── skills/                                   # 自带技能(browser-verification、desktop-verification);官方四套从已安装包解析
 ├── tools/
-│   └── screen-capture.ps1                    # OS 层截图 / watch 抓帧(门禁:默认关闭)
+│   ├── screen-capture.ps1                    # OS 层截图 / watch 抓帧(门禁:默认关闭)
+│   └── agent-chrome.ps1                      # 专用 Chrome 的 status / start / stop
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -160,6 +161,7 @@ DSH 每次升级后:
 要点:
 
 - 默认是**接入模式**(`--cdp-endpoint`,驱动你自己已登录的 Chrome);想换成自带浏览器则用启动模式(`--headless --browser chrome --user-data-dir <DSH_HOME>/cache/browser-profile`,复用系统 Chrome 通道、不下载 Chromium、不触碰你本人的 Chrome 配置)。两种模式都只影响浏览器进程,不影响会话是否可用。
+- **浏览器窗口可以由 agent 自助管理**:随包脚本 `tools/agent-chrome.ps1 -Action status|start|stop` 分别用于检查 CDP 端点、启动专用 Chrome、只结束专用实例(按 `--user-data-dir` 精确匹配,不碰你自己的 Chrome)。预设把 MCP 客户端的 `reconnect` 放宽到 **20 次 / 间隔 0.5s→15s(约 4 分钟)**,并给 server 加了 `--cdp-timeout 5000`:会话组装时浏览器没起来,只要在重试窗口内把它启动,`mcp__playwright__*` 工具会自动出现,无需重开会话;窗口过去后需起好浏览器再新开会话。
 - 截图:可直接写**工作区绝对路径**——预设开了 `--allow-unrestricted-file-access`(不开时 server 只允许写自己的允许根,会报 `File access denied: … is outside allowed roots`)。相对文件名以 server 的 **cwd** 为基准,而该 cwd 与 `--output-dir` 都固定在 `$DSH_HOME/cache/browser-shots`。截图只是 PNG 落盘,要让「模型看见」还需再 `read_image` 一次。
 - **本机 GUI 需要认证,预设用「接入已登录浏览器」解决**:DSH 用启动令牌兑换签名 Cookie 保护 GUI,匿名访问 `http://127.0.0.1:3080` 会得到 **401 Unauthorized**。因此 MCP server 以 `--cdp-endpoint http://127.0.0.1:9222` **接入你自己已登录的 Chrome**,复用其登录状态与标签页,**令牌全程不经过 agent、不进日志**。你只需一次性准备:
 

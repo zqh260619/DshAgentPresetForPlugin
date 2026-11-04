@@ -34,6 +34,25 @@ DSH 的 GUI 用**启动令牌兑换签名 Cookie**保护(`dsh-client-connection`
 2. 在其中打开 Harness GUI;若是全新 profile,需要一次带令牌的访问(`dsh web` 启动时打印的那行 URL,或用户自己浏览器历史里那次访问)。
 3. 保持这个 Chrome 窗口运行。
 
+### 浏览器窗口的生命周期(agent 可以自助)
+
+随包脚本 `tools/agent-chrome.ps1`(与本技能同一 bundle,位于 bundle 根的 `tools\` 下)负责查看 / 启动 / 停止那个专用 Chrome,只按 `--user-data-dir` 精确匹配进程,**绝不会碰用户自己的 Chrome**:
+
+```powershell
+$chrome = '<bundle>\tools\agent-chrome.ps1'
+powershell -NoProfile -ExecutionPolicy Bypass -File $chrome -Action status   # 有没有在跑 + CDP 是否可达
+powershell -NoProfile -ExecutionPolicy Bypass -File $chrome -Action start    # 没跑就起,并等端点就绪
+powershell -NoProfile -ExecutionPolicy Bypass -File $chrome -Action stop     # 只结束专用实例
+```
+
+时序要点(很重要):
+
+- MCP 客户端在**会话组装时**连接 CDP;连不上会按 `reconnect` 配置退避重试(**本预设放宽到约 4 分钟**:20 次、间隔 0.5s→15s),重试期间你把 Chrome 起来,工具会**自动出现**,无需重开会话;
+- 如果重试窗口已经过去(工具一直不出现且 `status` 显示端点不可达),那就把 Chrome 起好,然后**让用户新开一个会话**(工具只在会话组装时注册);
+- 专用 profile 会保留 GUI 的登录 Cookie(默认 30 天),所以重启浏览器**不需要**再走一次令牌;只有 profile 目录被清空/换新时,才需要用户再做一次带令牌的访问(那是用户侧动作,不要自己去找令牌);
+- **不要**用 `browser_close` 来"关浏览器"(它标注的语义是关闭页面/浏览器,在接入模式下可能关掉用户的窗口);要关就只用 `-Action stop`;
+- 用完自己开的标签页请用 `browser_tabs` 关掉,别给其他会话留下状态。
+
 之后:
 
 - `browser_navigate` 打开 `http://127.0.0.1:3080` 就能直接看到已登录界面并截图;

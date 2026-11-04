@@ -198,6 +198,10 @@
                 # non-default user-data-dir.
                 - '--cdp-endpoint'
                 - 'http://127.0.0.1:9222'
+                # Fail a missing endpoint quickly instead of blocking 30s, so the
+                # reconnect loop below reacts within seconds.
+                - '--cdp-timeout'
+                - '5000'
                 # LAUNCH alternative (self-contained browser, but it cannot see the
                 # authenticated GUI): replace the two arguments above with
                 #   '--headless', '--browser', chrome, '--user-data-dir',
@@ -212,4 +216,13 @@
                 - '--allow-unrestricted-file-access'
                 - '--output-dir'
                 - !!js dshHomePath('cache', 'browser-shots')
+              # Keep retrying long enough for the agent to start the dedicated
+              # browser on demand (tools/agent-chrome.ps1): 20 attempts with
+              # delays doubling from 0.5s to 15s cover roughly four minutes.
+              # Defaults are enabled/10 attempts/30s ceiling.
+              reconnect:
+                enabled: true
+                initialDelayMs: 500
+                maxDelayMs: 15000
+                maxAttempts: 20
               failOnStartupError: false
