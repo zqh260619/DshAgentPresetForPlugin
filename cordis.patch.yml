@@ -1,12 +1,14 @@
 # DshAgentPresetForPlugin: one `@deepseek-ai/dsh-agent-preset` declaration,
 # installed into the current profile as a bundle patch.
 #
-# Row-for-row mirror of the shipped `cordis` preset as of DSH **0.2.1-rc.1**
-# (0.2.1 added `time-context`, `tool-schedule` and `tool-plugin-market`, moved
-# the working directory out of `persona.suffix`, and dropped `backgroundMode`,
-# the Codex / Claude Code subagent rows and `tool-ralph`). The plugin list is
-# copied verbatim from `dsh-web-app/presets/cordis.patch.yml`; re-sync it when
-# DSH upgrades.
+# Row-for-row mirror of the shipped `cordis` preset as of DSH **0.2.2-rc.1**
+# (0.2.2 renamed `tool-subagent.modelSelectionSettings` to `modelSelection` and
+# added `modelDiscovery`, dropped the `tool-subagent-control/list-agents` row,
+# and gave `tool-fs` an `applyPatch` config; 0.2.1 had added `time-context`,
+# `tool-schedule` and `tool-plugin-market`, moved the working directory out of
+# `persona.suffix`, and dropped `backgroundMode` plus the Codex / Claude Code
+# subagent rows and `tool-ralph`). The plugin list is copied verbatim from
+# `dsh-web-app/presets/cordis.patch.yml`; re-sync it when DSH upgrades.
 #
 # This bundle adds two things on top of the mirror:
 #   * `browser-playwright` — Playwright MCP over the installed mcp-client;
@@ -41,6 +43,9 @@
             disabled: !!js process.platform !== 'win32'
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              # Set true to add the apply_patch tool beside edit.
+              applyPatch: false
           - id: tool-fs-search
             name: '@deepseek-ai/dsh-tool-fs-search'
             config:
@@ -99,14 +104,13 @@
             config:
               - id: tool-subagent-control
                 name: '@deepseek-ai/dsh-tool-subagent-control'
-              - id: tool-subagent-list-agents
-                name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
               - id: tool-subagent
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
                   provider: spawn
                   toolName: subagent
-                  modelSelectionSettings: true
+                  modelSelection: true
+                  modelDiscovery: true
               - id: tool-subagent-fork
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:

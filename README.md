@@ -97,13 +97,20 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 
 ## 与 shipped `cordis`(创造模式)预设的关系
 
-- 本预设的 `plugins` 列表**逐行镜像** shipped `cordis` 预设(以 **0.2.1-rc.1** 的 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml` 为基准),只改了 `id` / `name` / `description` / `order`,再叠加浏览器行与自带的技能目录。
+- 本预设的 `plugins` 列表**逐行镜像** shipped `cordis` 预设(以 **0.2.2-rc.1** 的 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml` 为基准),只改了 `id` / `name` / `description` / `order`,再叠加浏览器行与自带的技能目录。
 - 因此它等价于「一份你自己拥有、可自由改动的创造模式」:官方升级不会覆盖它,你可以在此基础上增删行(例如按注释块启用 `tool-ralph`、Codex / Claude Code 子代理行)。
 - **不再需要共存 shim**:0.1.6 时代 `tool-cordis` 会把 Inspect provider 注册进进程全局 registry,导致两个预设无法同进程共存;0.1.7-rc.1 已把这部分拆到宿主行 `@deepseek-ai/dsh-tool-cordis/host`(注释明确 "registers once per process"),根因由官方修复,本仓库随之删除了旧的 `plugins/cordis-inspect-shim.mjs`。
 
 ## 版本兼容性
 
-### DSH 0.2.1-rc.1(当前)
+### DSH 0.2.2-rc.1(当前)
+
+- **`tool-subagent` 字段改名**:`modelSelectionSettings` → `modelSelection`,并新增 `modelDiscovery`(开启后注册子智能体模型发现工具)。本预设按 shipped 改为 `modelSelection: true` + `modelDiscovery: true`;旧字段在新 schema 里已不存在。
+- **`tool-subagent-control/list-agents` 子路径已删除**(该包 0.2.2 只导出主入口):本预设删掉了对应子行,shipped 也已移除。
+- **`tool-fs` 新增 `applyPatch` 配置**:随 shipped 显式设为 `false`;改成 `true` 即多出一个 `apply_patch` 工具(与 `edit` 并列)。
+- 其余行、`dsh-mcp-client` 配置 schema、技能解析表达式、官方四套技能、`tools/screen-capture.ps1` 均未变化,浏览器行与自带技能目录不受影响。
+
+### DSH 0.2.1-rc.1
 
 - **声明整体对齐 shipped `cordis`**:`time-context`、`tool-schedule`(`schedule_create/list/update/delete`)、`tool-plugin-market`(`plugin_market`)三行补入;`persona` 去掉 `suffix`(工作目录改由运行时上下文提供);`plan-mode` 段落更新为 0.2.1 文案。其中 `plugin_market` 是**条件注册**:只有 profile 安装了提供 `pluginMarket` 服务的市场 bundle 时工具才出现(未安装时该行无副作用,会话照常组装)。
 - **修掉一处硬性漂移**:`tool-subagent` 的 `backgroundMode` 字段在 0.2.1 已从配置 schema 移除,本预设的 spawn / fork 行不再带它。
