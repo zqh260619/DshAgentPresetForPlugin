@@ -226,3 +226,10 @@
                 maxDelayMs: 15000
                 maxAttempts: 20
               failOnStartupError: false
+    # Profile-level `/publish` slash command, listed beside `/goal`, `/compact`, …
+    # It is not a preset child row on purpose: preset child rows resolve package
+    # names from the harness install, which cannot see this bundle, while
+    # profile-level rows resolve them from the installing profile. The visible
+    # cost is that the command is available in every session of this profile.
+    - id: command-publish
+      name: '@local/dsh-agent-preset-for-plugin/command-publish'

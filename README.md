@@ -11,6 +11,7 @@
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
 - 🖥️ **桌面截图(OS 层)**:随包附带 `tools/screen-capture.ps1`,用会话自带的 `pwsh` 就能截**原生 toast / 系统对话框 / 托盘 / 其它应用窗口**,并支持「先开监听再触发、只留状态变化帧」的 watch 模式。默认关闭,需用户创建一次标记文件才启用(见下文)。
+- ⌨️ **斜杠指令 `/publish`**:在输入框 `/` 菜单里与 `/goal`、`/compact` 并列,一键把**发版清单**(测试 → 版本号/lock/CHANGELOG → 提交推送 → tag → 发布校验 → 本地生效)注入会话交给 agent 执行;支持 `patch|minor|major|<x.y.z>` 与发布说明(见下文)。
 - 🧠 **技能**:四套官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的两套:
   - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整流程,附 `references/` 与可直接复制的 `templates/`;
   - `cordis-composition-reference` — Loader patch 方言(insert / id 覆盖 / group / disabled / isolate / `!!js`)与可安装插件包清单;
@@ -70,7 +71,8 @@ DshAgentPresetForPlugin/
 ├── skills/                                   # 自带技能(browser-verification、desktop-verification);官方四套从已安装包解析
 ├── tools/
 │   ├── screen-capture.ps1                    # OS 层截图 / watch 抓帧(门禁:默认关闭)
-│   └── agent-chrome.ps1                      # 专用 Chrome 的 status / start / stop
+│   ├── agent-chrome.ps1                      # 专用 Chrome 的 status / start / stop
+│   └── command-publish.mjs                   # /publish 斜杠指令(注入发版清单)
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -207,6 +209,26 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode watch -Clip "1520
 - 截图只是 PNG 落盘,要让「模型看见」还需 `read_image`;用完把 `dir` 整个删掉,别把帧留在仓库里(要留就放 `artifacts/`、`tmp/` 这类已 gitignore 的目录)。
 
 > 为什么不用官方 Computer Use:`@deepseek-ai/dsh-experimental-computer-use-*` 在 0.2.0-rc.2 轨上确实有(带 native Cua SDK),但它提供的是「截图 + 鼠标键盘控制」,没有这里需要的 **watch/差异筛选**,还多出一大块输入控制面。本仓库因此选择只读的独立脚本。
+
+## 发版指令 `/publish`
+
+输入框的 `/` 菜单里除了官方的 `/goal`、`/plan`、`/compact`、`/model` 等,本 bundle 还注册了一条 **`/publish`**(实现见 [`tools/command-publish.mjs`](tools/command-publish.mjs))。选中它不会让宿主自己去发版,而是**把一份发版清单作为用户消息注入当前会话**,由 agent 按清单实际执行、逐步验证。
+
+参数:
+
+| 用法 | 含义 |
+| --- | --- |
+| `/publish` | 由 agent 依据 CHANGELOG 与上一个 tag 以来的改动判断升 patch / minor / major;升 **major 前必须先问你** |
+| `/publish patch` / `minor` / `major` | 明确指定升哪一位 |
+| `/publish 1.2.3` | 指定确切版本号 |
+| `/publish 1.2.3 修复 toast 误判` | 追加发布说明,会写进 CHANGELOG 段落 |
+
+注入的清单覆盖这套流程(取自实际发版记录):前置测试与 `node --check` → `package.json` 与 `package-lock.json`(两处)版本一致、构建标记、`CHANGELOG.md`、README 里的事实性数字 → `chore(release): x.y.z` 提交并推送(网络抖动走重试,不 force push)→ 打 `vX.Y.Z` tag 并推送 → 若有发布工作流则轮询 Actions 并用 `npm view <包> version` 确认 → 本机生效(bundle 用 `set_bundle` 关再开;npm 插件则更新 web / desktop 两个 profile)→ 汇报版本、tag、npm 版本与本地生效情况。
+
+两点如实说明:
+
+- **它在所有会话里可见**,不只本预设。原因是 DSH 的预设子行以 harness 安装目录为解析基准,引用不到本 bundle 的代码;要用预设级命令就得把插件装进 DSH 部署(升级即被覆盖)。因此选择 profile 级行:无需侵入部署,代价是菜单里多一条。
+- 回滚:删掉 `cordis.patch.yml` 末尾的 `command-publish` 行并重新应用 bundle 即可。
 
 ## 注意事项
 
