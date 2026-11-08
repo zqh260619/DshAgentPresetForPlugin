@@ -212,7 +212,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode watch -Clip "1520
 
 ## 发版指令 `/publish`
 
-输入框的 `/` 菜单里除了官方的 `/goal`、`/plan`、`/compact`、`/model` 等,本 bundle 还注册了一条 **`/publish`**(实现见 [`tools/command-publish.mjs`](tools/command-publish.mjs))。选中它不会让宿主自己去发版,而是**把一份发版清单作为用户消息注入当前会话**,由 agent 按清单实际执行、逐步验证。
+输入框的 `/` 菜单里除了官方的 `/goal`、`/plan`、`/compact`、`/model` 等,本 bundle 还注册了一条 **`/publish`**(实现见 [`tools/command-publish.mjs`](tools/command-publish.mjs))。它**不发送聊天消息**:选中后只是**创建一条会话目标**(与 `/goal` 同一机制),界面只渲染一行命令提示(和 `/compact` 一样),对话历史里不会出现气泡。
 
 参数:
 
@@ -223,12 +223,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode watch -Clip "1520
 | `/publish 1.2.3` | 指定确切版本号 |
 | `/publish 1.2.3 修复 toast 误判` | 追加发布说明,会写进 CHANGELOG 段落 |
 
-注入的是一条**四行短消息**(约 170 字符),完整流程放在 **`plugin-release` 技能**里按需加载——长文本若直接注入会永久留在会话历史、每轮重发给模型,既占画面也占上下文。技能覆盖:前置测试与 `node --check` → `package.json` 与 `package-lock.json`(两处)版本一致、构建标记、`CHANGELOG.md`、README 里的事实性数字 → `chore(release): x.y.z` 提交并推送(网络抖动走重试,不 force push)→ 打 `vX.Y.Z` tag 并推送 → 若有发布工作流则轮询 Actions 并用 `npm view <包> version` 确认 → 本机生效(bundle 用 `set_bundle` 关再开;npm 插件则更新 web / desktop 两个 profile)→ 汇报版本、tag、npm 版本与本地生效情况。
+目标内容是一段**五行短说明**(约 230 字符,`goal` 走系统提示通道,不占对话历史);完整流程放在 **`plugin-release` 技能**里按需加载。技能覆盖:前置测试与 `node --check` → `package.json` 与 `package-lock.json`(两处)版本一致、构建标记、`CHANGELOG.md`、README 里的事实性数字 → `chore(release): x.y.z` 提交并推送(网络抖动走重试,不 force push)→ 打 `vX.Y.Z` tag 并推送 → 若有发布工作流则轮询 Actions 并用 `npm view <包> version` 确认 → 本机生效(bundle 用 `set_bundle` 关再开;npm 插件则更新 web / desktop 两个 profile)→ 汇报版本、tag、npm 版本与本地生效情况。
 
-两点如实说明:
+三点如实说明:
 
-- **它在所有会话里可见**,不只本预设。原因是 DSH 的预设子行以 harness 安装目录为解析基准,引用不到本 bundle 的代码;要用预设级命令就得把插件装进 DSH 部署(升级即被覆盖)。因此选择 profile 级行:无需侵入部署,代价是菜单里多一条。
-- 回滚:删掉 `cordis.patch.yml` 末尾的 `command-publish` 行并重新应用 bundle 即可。
+- **目标会一直存在直到完成**:命令里已要求 agent 发版结束后用 `update_goal` 标记 `complete`;若你中途想放弃,用 `/goal clear` 清掉。已有进行中的目标时 `/publish` 会拒绝并提示你先处理。
+- **为什么这一行没有图标**:图标/中文名只有"客户端命令"能自带,而客户端命令无法创建目标(客户端 goals 远程只有 edit/pause/resume/clear,没有 create)。两者目前不可兼得,这里优先了"不产生对话气泡"。
+- **它在所有会话里可见**,不只本预设(命令按 profile 注册)。回滚:删掉 `cordis.patch.yml` 末尾的 `command-publish` 行并重新应用 bundle 即可。
 
 ## 注意事项
 
