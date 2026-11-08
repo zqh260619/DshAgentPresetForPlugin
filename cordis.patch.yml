@@ -226,13 +226,10 @@
                 maxDelayMs: 15000
                 maxAttempts: 20
               failOnStartupError: false
-    # `/publish` is a CLIENT command now (`lib/client.js` + the `dsh.client` entry
-    # in package.json). A client contribution owns the menu face (localized label,
-    # description, icon), which a host command cannot supply, and a client
-    # contribution whose name collides with a host command fails loud — so the
-    # host-side `command-publish` row is gone. The row below is the no-op host half
-    # that makes the web client collect this package's `dsh.client` artifact; a
-    # package that only declares `dsh.client` without being mounted never reaches
-    # the browser.
-    - id: preset-for-plugin-client
-      name: '@local/dsh-agent-preset-for-plugin'
+    # Profile-level `/publish` slash command, listed beside `/goal`, `/compact`, …
+    # It is not a preset child row on purpose: preset child rows resolve package
+    # names from the harness install, which cannot see this bundle, while
+    # profile-level rows resolve them from the installing profile. The visible
+    # cost is that the command is available in every session of this profile.
+    - id: command-publish
+      name: '@local/dsh-agent-preset-for-plugin/command-publish'
