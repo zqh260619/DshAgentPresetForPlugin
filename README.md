@@ -11,7 +11,7 @@
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
 - 🖥️ **桌面截图(OS 层)**:随包附带 `tools/screen-capture.ps1`,用会话自带的 `pwsh` 就能截**原生 toast / 系统对话框 / 托盘 / 其它应用窗口**,并支持「先开监听再触发、只留状态变化帧」的 watch 模式。默认关闭,需用户创建一次标记文件才启用(见下文)。
-- ⌨️ **斜杠指令 `/publish`**:在输入框 `/` 菜单里与 `/goal`、`/compact` 并列,一键把**发版清单**(测试 → 版本号/lock/CHANGELOG → 提交推送 → tag → 发布校验 → 本地生效)注入会话交给 agent 执行;支持 `patch|minor|major|<x.y.z>` 与发布说明(见下文)。
+- ⌨️ **斜杠指令 `/publish`**:在输入框 `/` 菜单里与 `/goal`、`/compact` 并列,一键启动发版:只注入一条四行短消息,完整流程由按需加载的 `plugin-release` 技能执行(测试 → 版本号/lock/CHANGELOG → 提交推送 → tag → 发布校验 → 本地生效);支持 `patch|minor|major|<x.y.z>` 与发布说明(见下文)。
 - 🧠 **技能**:四套官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的两套:
   - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整流程,附 `references/` 与可直接复制的 `templates/`;
   - `cordis-composition-reference` — Loader patch 方言(insert / id 覆盖 / group / disabled / isolate / `!!js`)与可安装插件包清单;
@@ -223,7 +223,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode watch -Clip "1520
 | `/publish 1.2.3` | 指定确切版本号 |
 | `/publish 1.2.3 修复 toast 误判` | 追加发布说明,会写进 CHANGELOG 段落 |
 
-注入的清单覆盖这套流程(取自实际发版记录):前置测试与 `node --check` → `package.json` 与 `package-lock.json`(两处)版本一致、构建标记、`CHANGELOG.md`、README 里的事实性数字 → `chore(release): x.y.z` 提交并推送(网络抖动走重试,不 force push)→ 打 `vX.Y.Z` tag 并推送 → 若有发布工作流则轮询 Actions 并用 `npm view <包> version` 确认 → 本机生效(bundle 用 `set_bundle` 关再开;npm 插件则更新 web / desktop 两个 profile)→ 汇报版本、tag、npm 版本与本地生效情况。
+注入的是一条**四行短消息**(约 170 字符),完整流程放在 **`plugin-release` 技能**里按需加载——长文本若直接注入会永久留在会话历史、每轮重发给模型,既占画面也占上下文。技能覆盖:前置测试与 `node --check` → `package.json` 与 `package-lock.json`(两处)版本一致、构建标记、`CHANGELOG.md`、README 里的事实性数字 → `chore(release): x.y.z` 提交并推送(网络抖动走重试,不 force push)→ 打 `vX.Y.Z` tag 并推送 → 若有发布工作流则轮询 Actions 并用 `npm view <包> version` 确认 → 本机生效(bundle 用 `set_bundle` 关再开;npm 插件则更新 web / desktop 两个 profile)→ 汇报版本、tag、npm 版本与本地生效情况。
 
 两点如实说明:
 
