@@ -11,7 +11,7 @@
 - 🔎 **只读运行时 API 发现**:`cordis_inspect_list` / `cordis_inspect_query`,可在写代码前读取确切的 Host / Client Service、Event、Tool、Theme token 与 Slot 契约(只读,不触发业务方法)。
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
 - 🖥️ **桌面截图(OS 层)**:随包附带 `tools/screen-capture.ps1`,用会话自带的 `pwsh` 就能截**原生 toast / 系统对话框 / 托盘 / 其它应用窗口**,并支持「先开监听再触发、只留状态变化帧」的 watch 模式。默认关闭,需用户创建一次标记文件才启用(见下文)。
-- ⌨️ **斜杠指令 `/publish`**:在输入框 `/` 菜单里与 `/goal`、`/compact` 并列,一键启动发版:只注入一条四行短消息,完整流程由按需加载的 `plugin-release` 技能执行(测试 → 版本号/lock/CHANGELOG → 提交推送 → tag → 发布校验 → 本地生效);支持 `patch|minor|major|<x.y.z>` 与发布说明(见下文)。
+- ⌨️ **斜杠指令 `/publish`**:在输入框 `/` 菜单里与 `/goal`、`/compact` 并列,且与内置命令同款——**图标 + 中文名「发布」+ 英文名 `publish` + 中文描述**(客户端命令)。它只提交一条四行短消息,完整流程由按需加载的 `plugin-release` 技能执行(测试 → 版本号/lock/CHANGELOG → 提交推送 → tag → 发布校验 → 本地生效);支持 `patch|minor|major|<x.y.z>` 与发布说明(见下文)。
 - 🧠 **技能**:四套官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的两套:
   - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整流程,附 `references/` 与可直接复制的 `templates/`;
   - `cordis-composition-reference` — Loader patch 方言(insert / id 覆盖 / group / disabled / isolate / `!!js`)与可安装插件包清单;
@@ -71,8 +71,10 @@ DshAgentPresetForPlugin/
 ├── skills/                                   # 自带技能(browser-verification、desktop-verification);官方四套从已安装包解析
 ├── tools/
 │   ├── screen-capture.ps1                    # OS 层截图 / watch 抓帧(门禁:默认关闭)
-│   ├── agent-chrome.ps1                      # 专用 Chrome 的 status / start / stop
-│   └── command-publish.mjs                   # /publish 斜杠指令(注入发版清单)
+│   └── agent-chrome.ps1                      # 专用 Chrome 的 status / start / stop
+├── lib/
+│   ├── client.js                             # /publish 客户端命令(图标 + 发布 / publish)
+│   └── index.js                              # 空宿主半边:让客户端产物被收集
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -223,12 +225,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $cap -Mode watch -Clip "1520
 | `/publish 1.2.3` | 指定确切版本号 |
 | `/publish 1.2.3 修复 toast 误判` | 追加发布说明,会写进 CHANGELOG 段落 |
 
-注入的是一条**四行短消息**(约 170 字符),完整流程放在 **`plugin-release` 技能**里按需加载——长文本若直接注入会永久留在会话历史、每轮重发给模型,既占画面也占上下文。技能覆盖:前置测试与 `node --check` → `package.json` 与 `package-lock.json`(两处)版本一致、构建标记、`CHANGELOG.md`、README 里的事实性数字 → `chore(release): x.y.z` 提交并推送(网络抖动走重试,不 force push)→ 打 `vX.Y.Z` tag 并推送 → 若有发布工作流则轮询 Actions 并用 `npm view <包> version` 确认 → 本机生效(bundle 用 `set_bundle` 关再开;npm 插件则更新 web / desktop 两个 profile)→ 汇报版本、tag、npm 版本与本地生效情况。
+`/publish` 是**客户端命令**(`lib/client.js`,形态为 harness 的 `window.__ModuleLoader__.load({ id, factory })`,见厂商模板 `templates/decoration/client.js`)。只有客户端命令能自带菜单"脸":**图标(内联 SVG 上传箭头)+ 中文名「发布」+ 英文名 `publish` + 右侧中文描述**;宿主命令只能显示名字与描述。
 
-两点如实说明:
+它只提交一条**四行短消息**(约 170 字符),完整流程放在 **`plugin-release` 技能**里按需加载——长文本若直接注入会永久留在会话历史、每轮重发给模型,既占画面也占上下文。技能覆盖:前置测试与 `node --check` → `package.json` 与 `package-lock.json`(两处)版本一致、构建标记、`CHANGELOG.md`、README 里的事实性数字 → `chore(release): x.y.z` 提交并推送(网络抖动走重试,不 force push)→ 打 `vX.Y.Z` tag 并推送 → 若有发布工作流则轮询 Actions 并用 `npm view <包> version` 确认 → 本机生效(bundle 用 `set_bundle` 关再开;npm 插件则更新 web / desktop 两个 profile)→ 汇报版本、tag、npm 版本与本地生效情况。
 
-- **它在所有会话里可见**,不只本预设。原因是 DSH 的预设子行以 harness 安装目录为解析基准,引用不到本 bundle 的代码;要用预设级命令就得把插件装进 DSH 部署(升级即被覆盖)。因此选择 profile 级行:无需侵入部署,代价是菜单里多一条。
-- 回滚:删掉 `cordis.patch.yml` 末尾的 `command-publish` 行并重新应用 bundle 即可。
+三点如实说明:
+
+- **为什么还需要宿主行**:web 客户端只会为"在组合中的包"收集 `dsh.client` 产物,所以 `cordis.patch.yml` 里有一行空的宿主半边 `preset-for-plugin-client`(指向本包的 `lib/index.js`,只做 `export function apply() {}`);没有这一行,菜单里根本不会出现该命令。
+- **它在所有会话里可见**,不只本预设(客户端插件按 profile 加载)。想回滚:删掉 `cordis.patch.yml` 里的 `preset-for-plugin-client` 行、`package.json` 的 `dsh.client` 段与 `lib/` 目录,然后重新应用 bundle。
+- 改客户端产物后需要**刷新页面**才会生效(客户端插件在页面加载时装配)。
 
 ## 注意事项
 

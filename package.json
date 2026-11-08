@@ -5,10 +5,20 @@
   "type": "module",
   "description": "DshAgentPresetForPlugin: a DeepSeek Harness agent preset for plugin development.",
   "exports": {
-    "./command-publish": "./tools/command-publish.mjs",
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" }
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-commands",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
   }
 }
