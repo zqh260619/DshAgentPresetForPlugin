@@ -1,13 +1,16 @@
 # DshAgentPresetForPlugin: one `@deepseek-ai/dsh-agent-preset` declaration,
 # installed into the current profile as a bundle patch.
 #
-# Row-for-row mirror of the shipped `cordis` preset as of DSH **0.2.2-rc.1**
-# (0.2.2 renamed `tool-subagent.modelSelectionSettings` to `modelSelection` and
-# added `modelDiscovery`, dropped the `tool-subagent-control/list-agents` row,
-# and gave `tool-fs` an `applyPatch` config; 0.2.1 had added `time-context`,
-# `tool-schedule` and `tool-plugin-market`, moved the working directory out of
-# `persona.suffix`, and dropped `backgroundMode` plus the Codex / Claude Code
-# subagent rows and `tool-ralph`). The plugin list is copied verbatim from
+# Row-for-row mirror of the shipped `cordis` preset as of DSH **0.2.2-rc.3**
+# (rc.3 added the second `persona.prefix` line and `tool-subagent-control`'s
+# `interrupt: false`, and consolidated the four official plugin skills into the
+# single `dsh-doc` skill; 0.2.2 renamed `tool-subagent.modelSelectionSettings` to
+# `modelSelection` and added `modelDiscovery`, dropped the
+# `tool-subagent-control/list-agents` row, and gave `tool-fs` an `applyPatch`
+# config; 0.2.1 had added `time-context`, `tool-schedule` and
+# `tool-plugin-market`, moved the working directory out of `persona.suffix`, and
+# dropped `backgroundMode` plus the Codex / Claude Code subagent rows and
+# `tool-ralph`). The plugin list is copied verbatim from
 # `dsh-web-app/presets/cordis.patch.yml`; re-sync it when DSH upgrades.
 #
 # This bundle adds two things on top of the mirror:
@@ -29,6 +32,7 @@
             config:
               prefix: >-
                 You are a coding agent powered by the {{model}} model.
+                You help the user customize DeepSeek Harness itself.
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
             config:
@@ -104,6 +108,8 @@
             config:
               - id: tool-subagent-control
                 name: '@deepseek-ai/dsh-tool-subagent-control'
+                config:
+                  interrupt: false
               - id: tool-subagent
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:

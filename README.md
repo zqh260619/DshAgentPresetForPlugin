@@ -12,13 +12,11 @@
 - 🌐 **浏览器与截图**(Playwright MCP):`mcp__playwright__*` 工具族——导航、无障碍树快照、截图、点击/输入、标签页与视口控制,让 UI 改动可以自证、截图可以自产。走已安装的 MCP 客户端挂载,无需新增 profile 依赖;浏览器不可用时只是没有这些工具,不会阻断会话。
 - 🖥️ **桌面截图(OS 层)**:随包附带 `tools/screen-capture.ps1`,用会话自带的 `pwsh` 就能截**原生 toast / 系统对话框 / 托盘 / 其它应用窗口**,并支持「先开监听再触发、只留状态变化帧」的 watch 模式。默认关闭,需用户创建一次标记文件才启用(见下文)。
 - ⌨️ **斜杠指令 `/publish`**:在输入框 `/` 菜单里与 `/goal`、`/compact` 并列,一键启动发版:只注入一条四行短消息,完整流程由按需加载的 `plugin-release` 技能执行(测试 → 版本号/lock/CHANGELOG → 提交推送 → tag → 发布校验 → 本地生效);支持 `patch|minor|major|<x.y.z>` 与发布说明(见下文)。
-- 🧠 **技能**:四套官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的两套:
-  - `cordis-plugin-development` — 持久化插件(含 Client UI 插件)与 MCP 连接的完整流程,附 `references/` 与可直接复制的 `templates/`;
-  - `cordis-composition-reference` — Loader patch 方言(insert / id 覆盖 / group / disabled / isolate / `!!js`)与可安装插件包清单;
-  - `editing-cordis-compositions` — 预设与组件的声明、迁移与验证;
-  - `agent-experience` — 模型可见工具定义、技能与上下文加载的设计规范;
+- 🧠 **技能**:官方技能从**已安装的 `@deepseek-ai/dsh-agent-preset` 包**解析(随 DSH 升级自动更新,不在本仓库留副本),外加本仓库自带的三套:
+  - `dsh-doc`(官方,0.2.2-rc.3 起官方技能合并为这一套)— DSH 自身的事实:功能、设置、插件/预设/工具/技能、Cordis API,以及升级到新版本时的迁移;
   - `browser-verification`(**本仓库自带**)— 浏览器验证与截图流程(含本机 GUI 的认证方式与边界);
-  - `desktop-verification`(**本仓库自带**)— OS 层验证:toast / 系统对话框 / 托盘 / 其它应用窗口,含 watch 抓帧与隐私纪律。
+  - `desktop-verification`(**本仓库自带**)— OS 层验证:toast / 系统对话框 / 托盘 / 其它应用窗口,含 watch 抓帧与隐私纪律;
+  - `plugin-release`(**本仓库自带**)— 发版流程:版本号 / lock / 构建标记 / CHANGELOG / tag / 发布校验 / 本地生效。
 
 ## 模式说明
 
@@ -68,7 +66,7 @@
 DshAgentPresetForPlugin/
 ├── package.json                              # bundle 清单(dsh.bundle.patch → cordis.patch.yml)
 ├── cordis.patch.yml                          # 预设声明:preset-dsh-agent-preset-for-plugin
-├── skills/                                   # 自带技能(browser-verification、desktop-verification);官方四套从已安装包解析
+├── skills/                                   # 自带技能(browser-verification、desktop-verification、plugin-release);官方技能(dsh-doc)从已安装包解析
 ├── tools/
 │   ├── screen-capture.ps1                    # OS 层截图 / watch 抓帧(门禁:默认关闭)
 │   ├── agent-chrome.ps1                      # 专用 Chrome 的 status / start / stop
@@ -100,18 +98,25 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 
 ## 与 shipped `cordis`(创造模式)预设的关系
 
-- 本预设的 `plugins` 列表**逐行镜像** shipped `cordis` 预设(以 **0.2.2-rc.1** 的 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml` 为基准),只改了 `id` / `name` / `description` / `order`,再叠加浏览器行与自带的技能目录。
+- 本预设的 `plugins` 列表**逐行镜像** shipped `cordis` 预设(以 **0.2.2-rc.3** 的 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml` 为基准),只改了 `id` / `name` / `description` / `order`,再叠加浏览器行与自带的技能目录。
 - 因此它等价于「一份你自己拥有、可自由改动的创造模式」:官方升级不会覆盖它,你可以在此基础上增删行(例如按注释块启用 `tool-ralph`、Codex / Claude Code 子代理行)。
 - **不再需要共存 shim**:0.1.6 时代 `tool-cordis` 会把 Inspect provider 注册进进程全局 registry,导致两个预设无法同进程共存;0.1.7-rc.1 已把这部分拆到宿主行 `@deepseek-ai/dsh-tool-cordis/host`(注释明确 "registers once per process"),根因由官方修复,本仓库随之删除了旧的 `plugins/cordis-inspect-shim.mjs`。
 
 ## 版本兼容性
 
-### DSH 0.2.2-rc.1(当前)
+### DSH 0.2.2-rc.3(当前)
+
+- **`persona.prefix` 增加第二行**「You help the user customize DeepSeek Harness itself.」,本预设已同步。
+- **`tool-subagent-control` 新增 `config.interrupt`**(schema 默认 `true`,即注册 `interrupt_agent` 工具);shipped 显式设为 `false`,本预设同步关闭。
+- **官方技能合并**:原先的四套插件开发技能(`cordis-plugin-development` / `cordis-composition-reference` / `editing-cordis-compositions` / `agent-experience`)被单一 **`dsh-doc`** 取代。技能解析表达式不变(`skills` 目录仍从已安装包解析),所以本预设**自动跟随**;会话里现在看到的是 `dsh-doc` + 本仓库自带的 `browser-verification` / `desktop-verification` / `plugin-release`。
+- 其余行、`dsh-mcp-client` 配置 schema(`transport`/`serverName`/`command`/`args`/`cwd`/`failOnStartupError`/`reconnect`)、`schedule_*` 工具名、`goals` 与 `commands` 服务接口均未变化;浏览器行、`/publish`(创建目标)与 `tools/*.ps1` 不受影响。
+
+### DSH 0.2.2-rc.1
 
 - **`tool-subagent` 字段改名**:`modelSelectionSettings` → `modelSelection`,并新增 `modelDiscovery`(开启后注册子智能体模型发现工具)。本预设按 shipped 改为 `modelSelection: true` + `modelDiscovery: true`;旧字段在新 schema 里已不存在。
 - **`tool-subagent-control/list-agents` 子路径已删除**(该包 0.2.2 只导出主入口):本预设删掉了对应子行,shipped 也已移除。
 - **`tool-fs` 新增 `applyPatch` 配置**:随 shipped 显式设为 `false`;改成 `true` 即多出一个 `apply_patch` 工具(与 `edit` 并列)。
-- 其余行、`dsh-mcp-client` 配置 schema、技能解析表达式、官方四套技能、`tools/screen-capture.ps1` 均未变化,浏览器行与自带技能目录不受影响。
+- 其余行、`dsh-mcp-client` 配置 schema、技能解析表达式、`tools/screen-capture.ps1` 均未变化,浏览器行与自带技能目录不受影响。
 
 ### DSH 0.2.1-rc.1
 
@@ -145,7 +150,7 @@ plugin_manager  action: install_bundle  target: <克隆下来的绝对路径>
 DSH 每次升级后:
 
 1. 读新版 shipped 预设 `@deepseek-ai/dsh-web-app/presets/cordis.patch.yml`,把 `plugins` 列表同步到本仓库的 `cordis.patch.yml`(包改名 / 移除与配置 schema 变化都会导致预设无法组装会话);
-2. 技能无需手工同步:官方四套从已安装的 `@deepseek-ai/dsh-agent-preset` 包解析,随 DSH 升级自动更新;只需确认自带的 `browser-verification` 与 `desktop-verification` 仍与新版本相符;
+2. 技能无需手工同步:官方技能从已安装的 `@deepseek-ai/dsh-agent-preset` 包解析,随 DSH 升级自动更新(0.2.2-rc.3 起官方为单一 `dsh-doc`,更早版本是四套插件开发技能);只需确认自带的 `browser-verification` / `desktop-verification` / `plugin-release` 仍与新版本相符;
 3. 重新安装 bundle(`install_bundle`)使改动生效——已运行会话与其子会话保持各自启动时的版本,改动在新会话中验证。
 
 ## 浏览器与截图
